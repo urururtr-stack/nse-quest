@@ -1,0 +1,2774 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>NSE Quest</title>
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+
+<style>
+:root {
+  --header-h: 0px;
+  --tabs-h: 0px;
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --bg: #000;
+  --surface: #0f0f0f;
+  --surface2: #1a1a1a;
+  --border: #1f1f1f;
+  --border2: #2a2a2a;
+  --mid: #454545;
+  --muted: #606060;
+  --light: #909090;
+  --silver: #c0c0c0;
+  --white: #ffffff;
+  --neon: 0 0 6px #fff, 0 0 18px rgba(255,255,255,.55), 0 0 40px rgba(255,255,255,.2);
+  --neon-box: 0 0 6px rgba(255,255,255,.5), 0 0 20px rgba(255,255,255,.18);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  min-height: 100vh; max-width: 480px;
+  margin: 0 auto;
+  padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* ── Header ── */
+.app-header {
+  background: rgba(0,0,0,.96);
+  backdrop-filter: blur(24px);
+  padding: calc(18px + env(safe-area-inset-top)) 20px 16px;
+  border-bottom: 1px solid var(--border2);
+  position: sticky; top: 0; z-index: 50;
+}
+.header-brand {
+  font-size: 10px; letter-spacing: 5px; color: var(--white);
+  text-transform: uppercase; margin-bottom: 14px; font-weight: 400;
+  text-shadow: var(--neon);
+}
+.header-main {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+}
+.nav-btn {
+  background: none; border: 1px solid var(--border2); color: var(--silver);
+  width: 44px; height: 44px; border-radius: 0; font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.nav-btn:active {
+  background: var(--surface2); border-color: var(--white); color: var(--white);
+  box-shadow: var(--neon-box);
+}
+.month-label {
+  font-size: 26px; font-weight: 200; letter-spacing: 6px; color: var(--white);
+  text-shadow: var(--neon); cursor: pointer; user-select: none;
+}
+.month-label::after {
+  content: '▾'; font-size: 60px; letter-spacing: 0;
+  opacity: .45; vertical-align: middle; position: relative; top: -4px;
+}
+.today-btn {
+  display: block; margin: 0 auto 14px;
+  background: none; border: 1px solid var(--border2);
+  color: var(--muted); font-size: 9px; letter-spacing: 3px;
+  padding: 5px 16px; cursor: pointer; transition: all .15s;
+  text-transform: uppercase;
+}
+.today-btn:active { border-color: var(--white); color: var(--white); box-shadow: var(--neon-box); }
+.today-btn.current { border-color: var(--white); color: var(--white); text-shadow: var(--neon); }
+
+/* ── ヘッダーの月間目標サマリー ── */
+.hgoals {
+  display: flex; gap: 6px; margin-bottom: 10px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.hgoals::-webkit-scrollbar { display: none; }
+.hgoal {
+  flex: 1 0 auto; min-width: 62px; cursor: pointer;
+  border: 1px solid var(--border2); background: var(--surface);
+  padding: 6px 8px 7px;
+}
+.hgoal-name {
+  font-size: 9px; letter-spacing: 1px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
+}
+.hgoal-num {
+  font-size: 14px; font-weight: 300; color: var(--white); letter-spacing: 1px;
+  white-space: nowrap; margin-bottom: 5px;
+}
+.hgoal-num span { font-size: 10px; color: var(--muted); letter-spacing: 0; }
+.hgoal-bar { height: 2px; background: var(--border); overflow: hidden; }
+.hgoal-bar-fill { height: 100%; background: var(--silver); transition: width .45s cubic-bezier(.4,0,.2,1); }
+.hgoal.done { border-color: var(--white); }
+.hgoal.done .hgoal-num { text-shadow: var(--neon); }
+.hgoal.done .hgoal-bar-fill { background: var(--white); box-shadow: var(--neon-box); }
+
+.progress-meta {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--muted); margin-bottom: 8px; letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.progress-meta strong {
+  color: var(--white); font-weight: 400;
+  text-shadow: var(--neon);
+}
+.progress-bg { height: 2px; background: var(--border2); }
+.progress-fill {
+  height: 100%; transition: width 0.5s ease;
+  background: var(--white);
+  box-shadow: var(--neon-box);
+}
+
+/* ── Tabs ── */
+.tab-nav {
+  display: flex; overflow-x: auto; scrollbar-width: none;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,.96); backdrop-filter: blur(24px);
+  position: sticky; top: var(--header-h); z-index: 49;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-btn {
+  flex-shrink: 0; padding: 14px 18px; font-size: 12px; color: var(--mid);
+  background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap; letter-spacing: 2px;
+  text-transform: uppercase; min-height: 48px;
+}
+.tab-btn.active {
+  color: var(--white); border-bottom-color: var(--white);
+  text-shadow: var(--neon);
+}
+
+/* ── Panes ── */
+.pane { display: none; padding: 20px; }
+.pane.active { display: block; }
+.pane-title {
+  font-size: 10px; letter-spacing: 5px; color: var(--white);
+  text-shadow: var(--neon);
+  text-transform: uppercase; font-weight: 400;
+}
+.pane-title-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+/* ── Month picker ── */
+.month-picker {
+  display: none; margin: 14px -20px 0; padding: 16px 20px 16px;
+  border-top: 1px solid var(--border2);
+  background: rgba(0,0,0,.98);
+}
+.month-picker.open { display: block; }
+.picker-year-row {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+}
+.picker-yr-btn {
+  background: none; border: 1px solid var(--border2); color: var(--silver);
+  width: 44px; height: 44px; font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.picker-yr-btn:active { background: var(--surface2); border-color: var(--white); box-shadow: var(--neon-box); }
+.picker-yr-val { font-size: 18px; font-weight: 200; letter-spacing: 4px; color: var(--white); }
+.picker-months-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.picker-month-btn {
+  background: none; border: 1px solid var(--border2); color: var(--light);
+  padding: 13px 0; font-size: 14px; letter-spacing: 1px; cursor: pointer;
+  transition: all .15s; text-align: center; min-height: 48px;
+}
+.picker-month-btn:active { background: var(--surface2); }
+.picker-month-btn.active {
+  background: var(--white); color: var(--bg); border-color: var(--white);
+  box-shadow: var(--neon-box);
+}
+
+/* ── Date display (read-only) ── */
+.date-display {
+  font-size: 11px; color: var(--muted); letter-spacing: 1px;
+  user-select: none; white-space: nowrap;
+}
+
+/* ── 記録グリッド ── */
+.day-header-row, .check-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(7, 34px);
+  gap: 3px; align-items: center; margin-bottom: 4px;
+}
+.day-header-row {
+  background: var(--bg); padding: 6px 0 6px;
+  margin-top: 16px; margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.item-label { font-size: 11px; color: var(--silver); line-height: 1.4; padding-right: 4px; min-width: 0; word-break: keep-all; }
+.day-head { text-align: center; font-size: 11px; color: var(--white); line-height: 1.2; }
+.day-head.sat { color: #5599ff; }
+.day-head.sun { color: #ff4444; }
+.day-head.future { opacity: .3; }
+.future-cell { width: 100%; height: 38px; background: var(--surface); border: 1px solid var(--border); opacity: .2; cursor: not-allowed; }
+.day-num { display: block; font-size: 9px; color: var(--muted); margin-top: 2px; font-weight: 300; }
+.day-head.sat .day-num { color: rgba(85,153,255,.55); }
+.day-head.sun .day-num { color: rgba(255,68,68,.55); }
+
+/* ── 今日のカウンター ── */
+.counter-wrap {
+  border: 1px solid var(--border2); background: var(--surface);
+  padding: 4px 14px; margin: 16px 0 4px;
+}
+.counter-title {
+  font-size: 9px; letter-spacing: 3px; color: var(--muted);
+  text-transform: uppercase; padding: 10px 0 6px;
+}
+.counter-days { display: flex; gap: 4px; padding-bottom: 10px; }
+.cday {
+  flex: 1; min-width: 0; padding: 6px 0 5px;
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--silver); font-size: 11px; font-family: inherit; line-height: 1.2;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: border-color .15s, color .15s, box-shadow .15s;
+}
+.cday span { display: block; font-size: 9px; color: var(--muted); margin-top: 2px; }
+.cday.today { border-style: dashed; }
+.cday.on {
+  border-color: var(--white); color: var(--white);
+  box-shadow: var(--neon-box); text-shadow: var(--neon);
+}
+.cday.on span { color: var(--white); }
+.cday.off { opacity: .25; cursor: not-allowed; }
+.counter-item { border-top: 1px solid var(--border); padding: 9px 0 10px; }
+.counter-row { display: flex; align-items: center; gap: 10px; }
+.counter-goal { margin-top: 7px; }
+.counter-goal-txt {
+  font-size: 9px; letter-spacing: 1px; color: var(--muted); margin-top: 4px;
+}
+
+/* ── 月間目標と進捗 ── */
+.goal-bar { height: 3px; background: var(--border); overflow: hidden; }
+.goal-bar-fill {
+  height: 100%; background: var(--silver); width: 0;
+  transition: width .45s cubic-bezier(.4,0,.2,1);
+}
+.goal-bar-fill.done { background: var(--white); box-shadow: var(--neon-box); }
+.goal-row { border: 1px solid var(--border2); background: var(--surface); padding: 12px 14px; margin-bottom: 8px; }
+.goal-row-top { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.goal-row-name { flex: 1; min-width: 0; font-size: 13px; color: var(--white); letter-spacing: 1px; }
+.goal-row-num { display: flex; align-items: baseline; gap: 6px; flex-shrink: 0; }
+.goal-row-num strong {
+  font-size: 20px; font-weight: 200; color: var(--white); letter-spacing: 1px;
+}
+.goal-row-num strong.done { text-shadow: var(--neon); }
+.goal-row-num span { color: var(--muted); font-size: 12px; }
+.goal-row-unit { font-size: 10px; color: var(--silver); }
+.goal-input {
+  width: 62px; background: var(--bg); border: 1px solid var(--border2);
+  color: var(--white); font-size: 16px; font-family: inherit; text-align: center;
+  padding: 5px 4px; outline: none; border-radius: 0;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.goal-input::-webkit-outer-spin-button,
+.goal-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.goal-input:focus { border-color: var(--white); box-shadow: var(--neon-box); }
+.goal-input::placeholder { color: var(--border2); font-size: 11px; }
+.goal-row-sub { font-size: 10px; letter-spacing: 1px; color: var(--muted); margin-top: 7px; }
+.counter-name {
+  flex: 1; min-width: 0; font-size: 13px; color: var(--white);
+  letter-spacing: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.counter-btn {
+  width: 42px; height: 42px; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.22); background: var(--bg);
+  color: var(--white); font-size: 20px; line-height: 1; font-family: inherit;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+  transition: transform .1s, box-shadow .15s, border-color .15s;
+}
+.counter-btn:active {
+  transform: scale(.85);
+  border-color: var(--white); box-shadow: var(--neon-box);
+}
+.counter-val {
+  min-width: 60px; text-align: center; flex-shrink: 0;
+  font-size: 22px; font-weight: 200; letter-spacing: 1px;
+  color: var(--white); text-shadow: var(--neon);
+}
+.counter-unit { font-size: 10px; color: var(--silver); margin-left: 3px; letter-spacing: 1px; }
+.counter-val.bump { animation: cbump .32s cubic-bezier(.3,1.4,.5,1); }
+@keyframes cbump {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.4); text-shadow: 0 0 10px #fff, 0 0 28px rgba(255,255,255,.85); }
+  100% { transform: scale(1); }
+}
+.counter-pop {
+  position: fixed; pointer-events: none; z-index: 900;
+  font-size: 16px; font-weight: 300; letter-spacing: 1px;
+  color: var(--white); text-shadow: var(--neon);
+  animation: cpop .85s ease-out forwards;
+}
+@keyframes cpop {
+  0%   { opacity: 0; transform: translate(-50%, 0) scale(.8); }
+  22%  { opacity: 1; transform: translate(-50%, -20px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -56px) scale(.9); }
+}
+.measure-cell.flash { animation: cflash .45s ease; }
+@keyframes cflash {
+  0%   { border-color: var(--white); box-shadow: var(--neon-box); }
+  100% { border-color: rgba(255,255,255,.22); box-shadow: none; }
+}
+
+/* ── Week delta ── */
+.week-delta { display: flex; gap: 8px; margin-top: 14px; }
+.delta-pill {
+  flex: 1; background: var(--surface); border: 1px solid var(--border2);
+  padding: 10px 12px;
+}
+.delta-label { font-size: 8px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
+.delta-val { font-size: 20px; font-weight: 200; letter-spacing: 2px; color: var(--border2); }
+.delta-val.neg { color: #5599ff; text-shadow: 0 0 6px #5599ff, 0 0 18px rgba(85,153,255,.5); }
+.delta-val.pos { color: #ff4444; text-shadow: 0 0 6px #ff4444, 0 0 18px rgba(255,68,68,.5); }
+.check-cell {
+  width: 100%; height: 38px; border: 1px solid rgba(255,255,255,.22); border-radius: 0;
+  background: var(--surface); display: flex; align-items: center;
+  justify-content: center; font-size: 16px; color: transparent; user-select: none;
+}
+
+/* ── Measure grid ── */
+.measure-cell {
+  width: 100%; height: 44px; border: 1px solid rgba(255,255,255,.22);
+  background: var(--surface); color: var(--white);
+  font-size: 12px; text-align: center; outline: none; padding: 0 2px;
+  border-radius: 0; -moz-appearance: textfield; appearance: textfield; flex-shrink: 0;
+}
+.measure-cell::-webkit-outer-spin-button,
+.measure-cell::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.measure-cell:focus { border-color: var(--white); box-shadow: var(--neon-box); }
+.measure-cell::placeholder { color: var(--border2); }
+.measure-cell:-webkit-autofill,
+.measure-cell:-webkit-autofill:hover,
+.measure-cell:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px var(--surface) inset !important;
+  -webkit-text-fill-color: var(--white) !important;
+  caret-color: var(--white);
+}
+
+/* ── Divider ── */
+.sep { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* ── Field rows ── */
+.section-label {
+  font-size: 10px; letter-spacing: 4px; color: var(--light);
+  text-transform: uppercase; margin-bottom: 14px;
+}
+.field-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 13px 0; border-bottom: 1px solid var(--border);
+}
+.field-row:last-of-type { border-bottom: none; }
+.field-key { font-size: 14px; color: var(--silver); flex: 1; padding-right: 12px; }
+.field-val {
+  background: none; border: none; border-bottom: 1px solid var(--border2); color: var(--white);
+  font-size: 16px; text-align: right; width: 90px; padding: 8px 0; outline: none;
+  transition: border-color .15s;
+}
+.field-val:focus { border-bottom-color: var(--white); }
+.field-val::placeholder { color: var(--border2); }
+.toggle-grp { display: flex; gap: 6px; }
+.tog {
+  padding: 10px 16px; border-radius: 0; border: 1px solid var(--border2);
+  background: none; color: var(--muted); font-size: 13px; letter-spacing: 1px;
+  cursor: pointer; transition: all 0.15s; text-transform: uppercase; min-height: 44px;
+}
+.tog.on {
+  background: var(--white); color: var(--bg); border-color: var(--white);
+  box-shadow: var(--neon-box);
+}
+.memo-wrap { padding: 14px 0 0; }
+.memo-label { font-size: 13px; color: var(--light); margin-bottom: 8px; letter-spacing: .5px; }
+.memo {
+  width: 100%; background: var(--surface); border: 1px solid var(--border2); border-radius: 0;
+  color: var(--white); font-size: 16px; line-height: 1.75;
+  padding: 13px; resize: none; outline: none; min-height: 80px;
+  font-family: inherit; transition: border-color .15s, box-shadow .15s;
+}
+.memo:focus { border-color: var(--white); box-shadow: var(--neon-box); }
+.memo::placeholder { color: var(--border2); }
+
+/* ── Monthly ── */
+.metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+.metric-card {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 0; padding: 14px; transition: border-color .15s, box-shadow .15s;
+}
+.metric-card:focus-within {
+  border-color: var(--white);
+  box-shadow: var(--neon-box);
+}
+.metric-card-result {
+  background: var(--surface); border: 2px solid var(--white);
+  border-radius: 0; padding: 14px;
+  box-shadow: var(--neon-box);
+}
+.metric-card-result .metric-card-label { color: var(--silver); }
+.metric-card-result .metric-card-value {
+  font-size: 26px; font-weight: 400; letter-spacing: 2px; color: var(--white);
+  text-shadow: var(--neon); margin: 8px 0 4px;
+}
+.metric-card-result .metric-card-unit { color: var(--silver); font-weight: 400; }
+.metric-unit-inline { font-size: 13px; font-weight: 300; letter-spacing: 1px; margin-left: 5px; color: var(--silver); }
+.result-row {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  gap: 8px; align-items: center; margin-bottom: 10px;
+}
+.result-arrow {
+  font-size: 28px; color: var(--white); text-align: center;
+  text-shadow: var(--neon); padding: 0 2px; line-height: 1; flex-shrink: 0;
+}
+.metric-card-label { font-size: 9px; color: var(--muted); margin-bottom: 10px; letter-spacing: 2px; text-transform: uppercase; }
+.metric-card-input {
+  background: none; border: none; border-bottom: 1px solid var(--border2);
+  color: var(--white); font-size: 26px; font-weight: 200; letter-spacing: 2px;
+  width: 100%; padding: 2px 0; outline: none;
+}
+.metric-card-unit { font-size: 11px; color: var(--muted); margin-top: 6px; letter-spacing: 1px; }
+.change { font-weight: 400; letter-spacing: 1px; }
+.change.neg { color: #5599ff; text-shadow: 0 0 6px #5599ff, 0 0 18px rgba(85,153,255,.5); }
+.change.pos { color: #ff4444; text-shadow: 0 0 6px #ff4444, 0 0 18px rgba(255,68,68,.5); }
+
+/* ── Login Screen ── */
+.login-screen {
+  position: fixed; inset: 0; overflow-y: auto; overflow-x: hidden;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  padding: calc(32px + env(safe-area-inset-top)) 24px calc(32px + env(safe-area-inset-bottom));
+  background: #000;
+}
+.login-video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0; opacity: .55;
+}
+.login-overlay {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(to bottom, rgba(0,0,0,.55) 0%, rgba(0,0,0,.72) 100%);
+}
+.login-box {
+  width: 100%; max-width: 360px;
+  position: relative; z-index: 2;
+}
+.login-title {
+  font-size: 22px; font-weight: 200; letter-spacing: 4px; color: var(--white);
+  text-shadow: var(--neon); margin-bottom: 40px; line-height: 1.4;
+  text-transform: uppercase;
+}
+.pw-wrap { position: relative; margin-bottom: 16px; }
+.pw-wrap .login-input { margin-bottom: 0; padding-right: 46px; }
+.pw-toggle {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: 44px; background: none; border: none; cursor: pointer;
+  color: var(--muted); display: flex; align-items: center; justify-content: center;
+  transition: color .15s; padding: 0;
+}
+.pw-toggle:hover { color: var(--white); }
+.login-field-label {
+  font-size: 11px; letter-spacing: 3px; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.login-input {
+  width: 100%; background: var(--surface); border: 1px solid var(--border2);
+  color: var(--white); font-size: 16px; padding: 13px 14px; outline: none;
+  letter-spacing: 1px; margin-bottom: 16px; border-radius: 0;
+  transition: border-color .15s, box-shadow .15s; font-family: inherit;
+}
+.login-input:focus { border-color: var(--white); box-shadow: var(--neon-box); }
+.login-input::placeholder { color: var(--muted); }
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover,
+.login-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px var(--surface) inset !important;
+  -webkit-text-fill-color: var(--white) !important;
+  caret-color: var(--white);
+}
+.stay-label {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: var(--silver); letter-spacing: 1px;
+  cursor: pointer; margin-bottom: 22px; user-select: none;
+}
+.stay-check {
+  width: 22px; height: 22px; border: 1px solid var(--border2); flex-shrink: 0;
+  background: var(--surface); appearance: none; -webkit-appearance: none;
+  cursor: pointer; transition: all .15s; position: relative;
+}
+.stay-check:checked { background: var(--white); border-color: var(--white); box-shadow: var(--neon-box); }
+.stay-check:checked::after {
+  content: '✓'; position: absolute; top: 1px; left: 4px;
+  font-size: 13px; color: var(--bg); font-weight: 700;
+}
+.privacy-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 11px; color: var(--silver); letter-spacing: 1px;
+  cursor: pointer; margin-bottom: 22px; user-select: none; line-height: 1.5;
+}
+.privacy-link {
+  color: var(--white); text-decoration: underline; cursor: pointer;
+  background: none; border: none; font: inherit; font-size: 11px;
+  letter-spacing: 1px; padding: 0;
+}
+.privacy-modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75);
+  z-index: 9999; align-items: center; justify-content: center;
+}
+.privacy-modal-overlay.open { display: flex; }
+.privacy-modal {
+  background: var(--surface); border: 1px solid var(--border2);
+  max-width: 340px; width: 90%; max-height: 70vh; border-radius: 4px;
+  display: flex; flex-direction: column; box-shadow: 0 0 30px rgba(0,0,0,.5);
+}
+.privacy-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 12px; border-bottom: 1px solid var(--border);
+  font-size: 11px; letter-spacing: 3px; color: var(--white); text-transform: uppercase;
+}
+.privacy-modal-close {
+  background: none; border: none; color: var(--muted); font-size: 18px;
+  cursor: pointer; padding: 0; line-height: 1;
+}
+.privacy-modal-body {
+  padding: 18px; overflow-y: auto; font-size: 11px; color: var(--silver);
+  line-height: 1.8; letter-spacing: .5px;
+}
+.privacy-modal-body h3 {
+  font-size: 11px; letter-spacing: 2px; color: var(--white); margin: 14px 0 6px;
+  text-transform: uppercase;
+}
+.privacy-modal-body h3:first-child { margin-top: 0; }
+.login-btn {
+  width: 100%; padding: 14px; background: var(--white); color: var(--bg);
+  border: none; font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+  cursor: pointer; font-weight: 700; box-shadow: var(--neon-box);
+  margin-bottom: 10px; font-family: inherit; transition: opacity .15s;
+}
+.login-btn:active { opacity: .8; }
+.faceid-btn {
+  width: 100%; padding: 13px; background: none; color: var(--white);
+  border: 1px solid var(--border2); font-size: 12px; letter-spacing: 2px;
+  text-transform: uppercase; cursor: pointer; font-family: inherit;
+  transition: border-color .15s; margin-bottom: 10px;
+}
+.faceid-btn:hover { border-color: var(--white); }
+.login-msg { font-size: 12px; letter-spacing: 1px; margin-top: 8px; text-align: center; min-height: 18px; }
+.login-msg.err { color: #ff4444; }
+.login-msg.ok  { color: #5599ff; }
+.login-switch {
+  font-size: 15px; color: var(--muted); letter-spacing: 1px;
+  text-align: center; margin-top: 20px; cursor: pointer; text-decoration: underline;
+}
+.login-sep { height: 1px; background: var(--border); margin: 24px 0; }
+
+/* ── Menu ── */
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.header-top .header-brand { margin-bottom: 0; }
+.menu-btn {
+  background: none;
+  border: 1px solid var(--border2); color: var(--white);
+  width: 36px; height: 36px; font-size: 20px; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+  transition: all .15s; flex-shrink: 0;
+}
+body.theme-light .menu-btn { background: rgba(244,244,244,.88); }
+.menu-btn:active { border-color: var(--white); box-shadow: var(--neon-box); }
+.menu-overlay {
+  position: fixed; inset: 0; z-index: 199;
+  background: rgba(0,0,0,.6); opacity: 0; pointer-events: none;
+  transition: opacity .3s;
+}
+.menu-overlay.open { opacity: 1; pointer-events: all; }
+.menu-drawer {
+  position: fixed; top: 0; right: -260px; width: 240px; height: 100%;
+  background: rgba(4,4,4,.98); backdrop-filter: blur(32px);
+  border-left: 1px solid var(--border2);
+  z-index: 200; transition: right .28s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column;
+}
+body.theme-light .menu-drawer {
+  background: #ffffff;
+  border-left: 1px solid #ddd;
+  backdrop-filter: none;
+}
+.menu-drawer.open { right: 0; }
+.menu-drawer-top {
+  display: flex; justify-content: flex-end;
+  padding: calc(18px + env(safe-area-inset-top)) 18px 18px;
+  border-bottom: 1px solid var(--border);
+}
+body.theme-light .menu-drawer-top { border-bottom-color: #e8e8e8; }
+.menu-close {
+  background: none; border: 1px solid var(--border2); color: var(--silver);
+  width: 32px; height: 32px; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+body.theme-light .menu-close { border-color: #ccc; color: #333; }
+.menu-close:active { border-color: var(--white); color: var(--white); }
+body.theme-light .menu-close:active { border-color: #333; color: #000; }
+.menu-item {
+  display: block; padding: 18px 28px;
+  font-size: 13px; letter-spacing: 4px; color: var(--light);
+  cursor: pointer; text-transform: uppercase;
+  border-bottom: 1px solid var(--border); transition: color .15s;
+  background: none; border-left: none; border-right: none; border-top: none;
+  text-align: left; width: 100%; font-family: inherit; min-height: 56px;
+}
+body.theme-light .menu-item { color: #555; border-bottom-color: #e8e8e8; }
+.menu-item:last-child { border-bottom: none; }
+.menu-item:active { color: var(--white); }
+body.theme-light .menu-item:active { color: #000; }
+.menu-item.menu-active { color: var(--light); text-shadow: none; }
+body.theme-light .menu-item.menu-active { color: #555; text-shadow: none; }
+/* ── Account Modal ── */
+.acct-modal {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.75); padding: 32px 24px;
+}
+.acct-box {
+  width: 100%; max-width: 320px;
+  background: var(--surface); border: 1px solid var(--border2); padding: 32px 28px;
+}
+.acct-title {
+  font-size: 10px; letter-spacing: 5px; color: var(--white);
+  text-shadow: var(--neon); text-transform: uppercase; margin-bottom: 8px;
+}
+.acct-sublabel {
+  font-size: 8px; letter-spacing: 3px; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.acct-id {
+  font-size: 20px; font-weight: 200; letter-spacing: 3px; color: var(--white);
+  margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+
+/* ── Theme Light ── */
+body.theme-light {
+  --bg: #f4f4f4; --surface: #ffffff; --surface2: #ebebeb;
+  --border: #e0e0e0; --border2: #d0d0d0; --mid: #aaaaaa;
+  --muted: #999999; --light: #666666; --silver: #444444; --white: #111111;
+  --neon: none; --neon-box: 0 1px 6px rgba(0,0,0,.12), 0 2px 16px rgba(0,0,0,.08);
+}
+body.theme-light .app-header { background: rgba(244,244,244,.96); }
+body.theme-light .tab-nav    { background: rgba(244,244,244,.96); }
+body.theme-light .day-header-row { background: var(--bg); }
+body.theme-light .month-picker { background: rgba(244,244,244,.98); }
+body.theme-light .login-screen { background: #f4f4f4; }
+body.theme-light .login-video  { display: none; }
+
+/* ── Landscape layout ── */
+@media (orientation: landscape) {
+  body, #appWrapper { max-width: 100%; }
+  .app-header { position: static; }
+  .tab-nav { position: static; }
+  .view-page { max-width: 100%; left: 0; transform: none; }
+  .app-header {
+    display: grid;
+    grid-template-columns: 1fr;
+    column-gap: 24px;
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+  }
+  .header-top   { grid-column: 1; grid-row: 1; }
+  .hgoals       { grid-column: 1; grid-row: 2; }
+  .header-main  { grid-column: 1; grid-row: 3; margin-bottom: 4px; }
+  #monthPicker  { grid-column: 1; grid-row: 4; }
+  .today-btn    { grid-column: 1; grid-row: 4; margin: 4px 0 0; align-self: start; display: block; }
+  /* 達成率: 最下段 */
+  .progress-meta { grid-column: 1; margin-top: 6px; }
+  .progress-bg   { grid-column: 1; }
+  /* 月ラベルを横画面サイズに縮小 */
+  .month-label        { font-size: 18px; letter-spacing: 3px; }
+  .month-label::after { font-size: 32px; top: -2px; }
+  .nav-btn { width: 36px; height: 36px; font-size: 16px; }
+  .menu-drawer { overflow-y: auto; }
+  .menu-item { padding: 12px 28px; min-height: 44px; }
+  /* ワイド画面で項目名の列が伸びすぎないよう、記録エリアの幅を制限 */
+  .pane-title-row, .counter-wrap, .week-delta, .weight-graph,
+  .day-header-row, .check-row, .section-label, .result-row, .memo-wrap, .sep {
+    max-width: 640px;
+  }
+  .day-header-row, .check-row { grid-template-columns: minmax(0, 150px) repeat(7, 1fr); }
+}
+
+/* ── View Page landscape: ヘッダーごとスクロール ── */
+.view-page.view-landscape { display: block !important; overflow-y: auto !important; padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+.view-page.view-landscape .view-header  { position: static !important; }
+.view-page.view-landscape .view-body    { display: block !important; overflow: visible !important; flex: none !important; height: auto !important; min-height: 0 !important; }
+.view-page.view-landscape .view-graph-header { position: static !important; }
+.view-page.view-landscape .view-scroll-area  { overflow-x: auto !important; overflow-y: visible !important; flex: none !important; height: auto !important; min-height: 0 !important; }
+
+/* ── View Page ── */
+.view-page {
+  position: fixed; top: 0; bottom: 0; z-index: 100;
+  left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  background: var(--bg); display: flex; flex-direction: column;
+}
+.view-header {
+  display: flex; flex-direction: column;
+  padding: calc(14px + env(safe-area-inset-top)) 20px 0; border-bottom: 1px solid var(--border2);
+  background: rgba(0,0,0,.96); backdrop-filter: blur(24px);
+  flex-shrink: 0;
+}
+.view-header-brand {
+  font-size: 10px; letter-spacing: 5px; color: var(--white);
+  text-transform: uppercase; font-weight: 400; text-shadow: var(--neon);
+  margin-bottom: 12px; cursor: pointer;
+}
+.view-header-nav {
+  display: flex; align-items: center; gap: 14px; padding-bottom: 0;
+}
+body.theme-light .view-header { background: rgba(244,244,244,.96); }
+.view-back {
+  background: none; border: 1px solid var(--border2); color: var(--white);
+  width: 32px; height: 32px; font-size: 18px; cursor: pointer;
+  display: none; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: all .15s;
+}
+.view-back:active { border-color: var(--white); }
+.view-title-text { display: none; }
+.view-tabs {
+  display: flex; flex: 1;
+}
+.view-tab {
+  flex: 1; background: none; border: none; border-bottom: 2px solid transparent;
+  color: var(--muted); font-size: 10px; letter-spacing: 1px;
+  text-transform: uppercase; padding: 8px 2px; cursor: pointer;
+  white-space: nowrap; transition: all .15s; font-family: inherit;
+  text-align: center;
+}
+.view-tab.active {
+  color: var(--white); border-bottom-color: var(--white);
+  text-shadow: var(--neon);
+}
+.view-body {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+}
+.view-graph-header {
+  flex-shrink: 0; background: var(--bg);
+}
+.view-scroll-area {
+  flex: 1; overflow: auto; -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y pinch-zoom; min-height: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@media (orientation: portrait) {
+  .view-scroll-area { overflow-y: hidden; touch-action: pan-x pinch-zoom; padding-bottom: 0; }
+  .view-scroll-area * { touch-action: pan-x pinch-zoom; }
+}
+.view-scroll-area * { touch-action: pan-x pan-y pinch-zoom; }
+.view-scroll-x {
+  padding: 0 20px 20px;
+}
+
+/* ── ビューページ：項目ごとのパネル ── */
+.view-scroll-area.items-view { overflow-y: auto !important; touch-action: pan-x pan-y pinch-zoom !important; }
+.view-scroll-area.items-view * { touch-action: pan-x pan-y pinch-zoom !important; }
+.ivpanel { margin-bottom: 20px; }
+.ivhead {
+  display: flex; align-items: baseline; gap: 10px;
+  position: sticky; left: 0; width: 100%;
+  margin-bottom: 6px;
+}
+.ivhead-name { font-size: 13px; letter-spacing: 2px; color: var(--white); flex-shrink: 0; }
+.ivhead-num { font-size: 12px; color: var(--muted); letter-spacing: 1px; }
+.ivhead-num strong { font-size: 17px; font-weight: 300; color: var(--white); margin-right: 2px; }
+.ivhead-num strong.done { text-shadow: var(--neon); }
+.ivbar {
+  position: sticky; left: 0; width: 100%;
+  height: 2px; background: var(--border); overflow: hidden; margin-bottom: 5px;
+}
+.ivbar-fill { height: 100%; background: var(--silver); transition: width .5s ease; }
+.ivbar-fill.done { background: var(--white); box-shadow: var(--neon-box); }
+.ivsub {
+  position: sticky; left: 0; width: 100%;
+  font-size: 9px; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px;
+}
+
+/* ── Theme Modal ── */
+.theme-opts { margin: 4px 0 20px; }
+.theme-opt {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 15px 0; border-bottom: 1px solid var(--border);
+  font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--silver); cursor: pointer; transition: color .15s;
+}
+.theme-opt:last-child { border-bottom: none; }
+.theme-opt.selected { color: var(--white); text-shadow: var(--neon); }
+.theme-opt-check { font-size: 14px; opacity: 0; }
+.theme-opt.selected .theme-opt-check { opacity: 1; }
+
+/* ── Weight Graph ── */
+.weight-graph { margin: 10px 0 20px; }
+.weight-graph:empty { display: none; }
+.graph-label {
+  font-size: 8px; letter-spacing: 3px; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 4px; line-height: 1.4;
+}
+</style>
+</head>
+<body>
+
+<!-- ── Login Screen ── -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-overlay"></div>
+
+  <div class="login-box">
+    <div class="login-title">NSE Quest</div>
+
+    <!-- ログイン -->
+    <div id="loginMode" style="display:none">
+      <form onsubmit="doLogin();return false;" autocomplete="off">
+        <div class="login-field-label">ログインID</div>
+        <input class="login-input" id="loginId" type="text" autocomplete="off" placeholder="ID">
+        <div class="login-field-label">パスワード</div>
+        <div class="pw-wrap">
+          <input class="login-input" id="loginPw" type="password" autocomplete="off" placeholder="Password">
+          <button type="button" class="pw-toggle" onclick="togglePw('loginPw',this)" tabindex="-1">
+            <svg id="eye-loginPw" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <label class="stay-label">
+          <input class="stay-check" type="checkbox" id="stayCheck"> ログインを保持する
+        </label>
+        <button class="login-btn" type="submit">ログイン</button>
+      </form>
+      <div class="login-msg" id="loginMsg"></div>
+      <div class="login-sep"></div>
+      <div class="login-switch" onclick="showSetup()">新規登録</div>
+    </div>
+
+    <!-- 新規登録 -->
+    <div id="setupMode" style="display:none">
+      <form onsubmit="doSetup();return false;" autocomplete="off">
+        <div class="login-field-label">ログインID</div>
+        <input class="login-input" id="setupId" type="text" autocomplete="off" placeholder="ID を設定">
+        <div class="login-field-label">パスワード</div>
+        <div class="pw-wrap">
+          <input class="login-input" id="setupPw" type="password" autocomplete="off" placeholder="Password（4文字以上）">
+          <button type="button" class="pw-toggle" onclick="togglePw('setupPw',this)" tabindex="-1">
+            <svg id="eye-setupPw" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="login-field-label">パスワード（確認）</div>
+        <div class="pw-wrap">
+          <input class="login-input" id="setupPw2" type="password" autocomplete="off" placeholder="Confirm Password">
+          <button type="button" class="pw-toggle" onclick="togglePw('setupPw2',this)" tabindex="-1">
+            <svg id="eye-setupPw2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <label class="privacy-row">
+          <input class="stay-check" type="checkbox" id="privacyCheck" onclick="event.stopPropagation()">
+          <span><button type="button" class="privacy-link" onclick="openPrivacyModal();event.stopPropagation();event.preventDefault()">個人情報保護方針</button>に同意する</span>
+        </label>
+        <button class="login-btn" type="submit">アカウント作成</button>
+      </form>
+      <div class="login-msg" id="setupMsg"></div>
+      <div class="login-sep"></div>
+      <div class="login-switch" onclick="showLogin()">ログインに戻る</div>
+    </div>
+  </div>
+</div>
+
+<!-- 個人情報保護方針モーダル -->
+<div class="privacy-modal-overlay" id="privacyModalOverlay" onclick="closePrivacyModal(event)">
+  <div class="privacy-modal">
+    <div class="privacy-modal-header">
+      <span>個人情報保護方針</span>
+      <button class="privacy-modal-close" onclick="closePrivacyModal()">&times;</button>
+    </div>
+    <div class="privacy-modal-body">
+      <h3>1. 収集する情報</h3>
+      本アプリは、日々の行動記録・チェック項目などの自己管理データおよびログインID・パスワード（ハッシュ化）を収集します。これらの情報はお使いのデバイスのローカルストレージに保存されます。
+
+      <h3>2. 利用目的</h3>
+      収集した情報は、自己管理の記録・進捗確認・グラフ表示のみを目的として使用します。第三者への提供・販売は行いません。
+
+      <h3>3. 情報の管理</h3>
+      データはお客様のデバイス内にのみ保存されます。アプリの利用を終了する場合は、ブラウザのローカルストレージをクリアすることでデータを削除できます。
+
+      <h3>4. セキュリティ</h3>
+      パスワードはSHA-256でハッシュ化して保存します。平文のパスワードは保持しません。
+
+      <h3>5. 本方針の変更</h3>
+      本方針は予告なく変更される場合があります。最新の内容は本アプリ内でご確認ください。
+
+      <h3>お問い合わせ</h3>
+      個人情報に関するお問い合わせは、サービス提供者までご連絡ください。
+    </div>
+  </div>
+</div>
+
+<!-- ── App Wrapper ── -->
+<div id="appWrapper" style="display:none">
+
+<header class="app-header">
+  <div class="header-top">
+    <div class="header-brand" onclick="goToday()" style="cursor:pointer">NSE Quest</div>
+    <button class="menu-btn" id="globalMenuBtn" onclick="toggleMenu()">≡</button>
+  </div>
+  <div class="hgoals" id="headerGoals"></div>
+  <div class="header-main">
+    <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+    <div class="month-label" id="monthLabel" onclick="togglePicker()"></div>
+    <button class="nav-btn" onclick="changeMonth(1)">›</button>
+  </div>
+  <div id="monthPicker" class="month-picker">
+    <div class="picker-year-row">
+      <button class="picker-yr-btn" onclick="shiftYear(-1)">‹</button>
+      <span class="picker-yr-val" id="pickerYr"></span>
+      <button class="picker-yr-btn" onclick="shiftYear(1)">›</button>
+    </div>
+    <div class="picker-months-grid" id="pickerMonths"></div>
+  </div>
+  <button class="today-btn" id="todayBtn" onclick="goToday()">Today</button>
+  <div class="progress-meta">
+    <span>今月の達成率</span>
+    <strong id="progressPct">0%</strong>
+  </div>
+  <div class="progress-bg">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+</header>
+
+<nav class="tab-nav" id="tabNav"></nav>
+
+<div id="panesContainer"></div>
+
+
+</div><!-- /#appWrapper -->
+
+<!-- ── Menu Overlay ── -->
+<div class="menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+
+<!-- ── Menu Drawer ── -->
+<div class="menu-drawer" id="menuDrawer">
+  <div class="menu-drawer-top">
+    <button class="menu-close" onclick="closeMenu()">×</button>
+  </div>
+  <button class="menu-item" id="mi-home"    onclick="menuGo('home')">Home</button>
+  <button class="menu-item" id="mi-account" onclick="menuGo('account')">Account</button>
+  <button class="menu-item" id="mi-daily"   onclick="menuGo('daily')">Daily</button>
+  <button class="menu-item" id="mi-weekly"  onclick="menuGo('weekly')">Weekly</button>
+  <button class="menu-item" id="mi-monthly" onclick="menuGo('monthly')">Monthly</button>
+  <button class="menu-item" id="mi-theme"   onclick="menuGo('theme')">Theme</button>
+  <button class="menu-item" id="mi-logout"  onclick="doLogout()" style="color:#e05555">ログアウト</button>
+</div>
+
+<!-- ── Account Modal ── -->
+<div class="acct-modal" id="acctModal" style="display:none" onclick="closeAccountModal()">
+  <div class="acct-box" onclick="event.stopPropagation()" style="max-height:82vh;overflow-y:auto">
+    <div class="acct-title">Account</div>
+
+    <div class="acct-sublabel">ログインID</div>
+    <div class="acct-id" id="acctIdDisp"></div>
+
+    <div class="acct-sublabel">名前</div>
+    <input class="login-input" id="acctName" type="text" placeholder="名前を入力" style="margin-bottom:14px">
+
+    <div class="acct-sublabel">メールアドレス</div>
+    <input class="login-input" id="acctEmail" type="email" placeholder="example@email.com" style="margin-bottom:18px">
+
+    <button class="login-btn" onclick="saveAccountInfo()">プロフィールを保存</button>
+    <div class="login-sep"></div>
+
+    <div style="font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px">パスワード変更</div>
+    <div class="acct-sublabel">現在のパスワード</div>
+    <div class="pw-wrap">
+      <input class="login-input" id="acctOldPw" type="password" placeholder="現在のパスワード" style="margin-bottom:0;padding-right:46px">
+      <button type="button" class="pw-toggle" onclick="togglePw('acctOldPw',this)" tabindex="-1">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div class="acct-sublabel" style="margin-top:10px">新しいパスワード</div>
+    <div class="pw-wrap">
+      <input class="login-input" id="acctNewPw" type="password" placeholder="新しいパスワード（4文字以上）" style="margin-bottom:0;padding-right:46px">
+      <button type="button" class="pw-toggle" onclick="togglePw('acctNewPw',this)" tabindex="-1">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div class="acct-sublabel" style="margin-top:10px">確認</div>
+    <div class="pw-wrap" style="margin-bottom:16px">
+      <input class="login-input" id="acctNewPw2" type="password" placeholder="パスワードの確認" style="margin-bottom:0;padding-right:46px">
+      <button type="button" class="pw-toggle" onclick="togglePw('acctNewPw2',this)" tabindex="-1">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <button class="login-btn" onclick="changePassword()">パスワードを変更</button>
+    <div class="login-msg" id="acctMsg"></div>
+    <div class="login-sep"></div>
+
+    <div class="acct-sublabel">データ管理</div>
+    <button class="faceid-btn" onclick="exportData()" style="margin-bottom:8px">データをエクスポート（バックアップ）</button>
+    <button class="faceid-btn" onclick="document.getElementById('importFile').click()" style="margin-bottom:8px">データをインポート（復元）</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    <div class="login-msg" id="dataMsg"></div>
+    <div class="login-sep"></div>
+
+    <button class="faceid-btn" onclick="closeAccountModal()">閉じる</button>
+  </div>
+</div>
+
+<!-- ── Theme Modal ── -->
+<div class="acct-modal" id="themeModal" style="display:none" onclick="closeThemeModal()">
+  <div class="acct-box" onclick="event.stopPropagation()">
+    <div class="acct-title">Theme</div>
+    <div class="theme-opts">
+      <div class="theme-opt" id="topt-light" onclick="applyTheme('light')">
+        <span>White</span><span class="theme-opt-check">✓</span>
+      </div>
+      <div class="theme-opt" id="topt-dark" onclick="applyTheme('dark')">
+        <span>Dark</span><span class="theme-opt-check">✓</span>
+      </div>
+    </div>
+    <button class="faceid-btn" onclick="closeThemeModal()">閉じる</button>
+  </div>
+</div>
+
+<!-- ── View Page ── -->
+<div id="viewPage" class="view-page" style="display:none">
+  <div class="view-header">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="view-header-brand" style="margin-bottom:0" onclick="closeViewPage(); goToday()">NSE Quest</div>
+      <button class="menu-btn" style="display:flex;flex-shrink:0" onclick="toggleMenu()">≡</button>
+    </div>
+    <div class="view-header-nav">
+      <button class="view-back" onclick="closeViewPage()">‹</button>
+      <div class="view-tabs">
+        <button class="view-tab" onclick="switchView('DAILY')">Daily</button>
+        <button class="view-tab" onclick="switchView('WEEKLY')">Weekly</button>
+        <button class="view-tab" onclick="switchView('MONTHLY')">Monthly</button>
+      </div>
+    </div>
+  </div>
+  <div class="view-body" id="viewBody"></div>
+</div>
+
+<script>
+const DAYS     = ['日','月','火','水','木','金','土'];
+const MAX_WEEKS = 6;
+
+/* ── 行動項目（カウンター）──────────────────────
+   週データは data.weeks[w][action.id][di] に格納する（旧 weight / fatpct と同じ文字列キー方式）。
+   旧データの 'weight' / 'fatpct' は削除しない（DEFAULT_ACTIONS に同じidを足せば再表示できる）。 */
+const UNIT = '件'; // 単位は全項目「件」で固定
+const DEFAULT_ACTIONS = [
+  { id: 'a1', name: 'ST' },
+  { id: 'a2', name: 'CT' },
+  { id: 'a3', name: 'FT' },
+  { id: 'a4', name: 'マケPG' },
+  { id: 'a5', name: 'DLR' },
+  { id: 'a6', name: 'PA' },
+  { id: 'a7', name: 'B1' },
+  { id: 'a8', name: 'IDシェア' },
+  { id: 'a9', name: 'ADP' },
+];
+let ACTIONS = [];
+
+function actionsKey() { return `ura-${localStorage.getItem(A_USER)||'default'}-actions`; }
+function loadActions() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(actionsKey()));
+    ACTIONS = Array.isArray(raw) && raw.length ? raw : DEFAULT_ACTIONS.map(a => ({...a}));
+  } catch(e) { ACTIONS = DEFAULT_ACTIONS.map(a => ({...a})); }
+  ACTIONS.forEach(a => { a.unit = UNIT; });
+}
+function actionById(id) { return ACTIONS.find(a => a.id === id) || null; }
+
+const now = new Date();
+let yr = now.getFullYear();
+let mo = now.getMonth() + 1;
+let data = {};
+let counterDay = {}; // 週ごとの「記録する日」（di: 0=日 〜 6=土）
+let currentTab = 0;
+let graphYr = yr, graphMo = mo, graphViewType = 'DAILY';
+
+// ── Calendar-week helpers ─────────────────────────
+function monthInfo(y, m) {
+  const last  = new Date(y, m, 0).getDate();
+  const day1js = new Date(y, m-1, 1).getDay(); // 0=Sun
+  const numWeeks = Math.ceil((day1js + last) / 7);
+  return { last, day1js, numWeeks };
+}
+
+// First date (can be ≤ 0 = previous month) of calendar week w
+function wkStartDate(w) {
+  return 1 - monthInfo(yr, mo).day1js + w * 7;
+}
+
+function currentWeekIdx() {
+  const t = new Date();
+  if (t.getFullYear() !== yr || t.getMonth() + 1 !== mo) return 0;
+  const { day1js, numWeeks } = monthInfo(yr, mo);
+  const td = t.getDate();
+  for (let w = 0; w < numWeeks; w++) {
+    const s = 1 - day1js + w * 7;
+    if (td >= s && td <= s + 6) return w;
+  }
+  return 0;
+}
+
+// ── Storage ──────────────────────────────────────
+function key() {
+  const user = localStorage.getItem(A_USER) || 'default';
+  return `ura-${user}-${yr}-${String(mo).padStart(2,'0')}`;
+}
+
+function blankWeek() {
+  const wk = {};
+  ACTIONS.forEach(a => { wk[a.id] = Array(7).fill(''); });
+  return wk;
+}
+
+function blank() {
+  return {
+    weeks: Array.from({length: MAX_WEEKS}, blankWeek),
+    monthly: { good:'', improve:'', notes:'' }
+  };
+}
+
+function load() {
+  try { data = JSON.parse(localStorage.getItem(key())) || blank(); }
+  catch(e) { data = blank(); }
+  if (!data.weeks) data = blank();
+  if (!data.monthly) data.monthly = { good:'', improve:'', notes:'' };
+  while (data.weeks.length < MAX_WEEKS) data.weeks.push(blankWeek());
+  // 旧データとの構造差異を正規化（旧 checks / weight / fatpct は温存するだけで参照しない）
+  data.weeks.forEach(wk => {
+    // 行動項目の配列を用意（未登録の項目は空配列を後付け。既存キーは温存）
+    ACTIONS.forEach(a => {
+      if (!Array.isArray(wk[a.id])) wk[a.id] = Array(7).fill('');
+      while (wk[a.id].length < 7) wk[a.id].push('');
+    });
+  });
+}
+
+function collect() {
+  for (let w = 0; w < MAX_WEEKS; w++) {
+    ACTIONS.forEach(a => {
+      if (!Array.isArray(data.weeks[w][a.id])) data.weeks[w][a.id] = Array(7).fill('');
+      for (let di = 0; di < 7; di++) {
+        const el = document.getElementById(`${a.id}-${w}-${di}`);
+        if (el) data.weeks[w][a.id][di] = el.value;
+      }
+    });
+  }
+  ['good','improve','notes'].forEach(k => {
+    const el = document.getElementById(`m-${k}`);
+    if (el) data.monthly[k] = el.value;
+  });
+}
+
+let _saveTimer = null;
+function autoSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    collect();
+    localStorage.setItem(key(), JSON.stringify(data));
+    const sy = window.scrollY;
+    renderWeightGraph(currentTab);
+    window.scrollTo({ top: sy, behavior: 'instant' });
+    scheduleCloudSync();
+  }, 600);
+}
+
+// ── Holiday helpers ───────────────────────────────
+function getHolidays(y, m) {
+  const h = new Set();
+  const last = new Date(y, m, 0).getDate();
+  // nth Monday of given month
+  const nthMon = (mo, n) => {
+    const d1 = new Date(y, mo - 1, 1).getDay();
+    return 1 + (8 - d1) % 7 + (n - 1) * 7;
+  };
+  // 春分・秋分（近似式）
+  const vernal   = () => Math.floor(20.8431 + 0.242194*(y-1980) - Math.floor((y-1980)/4));
+  const autumnal = () => Math.floor(23.2488 + 0.242194*(y-1980) - Math.floor((y-1980)/4));
+
+  const add = (...days) => days.forEach(d => { if (d >= 1 && d <= last) h.add(d); });
+
+  if (m===1)  add(1, nthMon(1,2));
+  if (m===2)  add(11, 23);
+  if (m===3)  add(vernal());
+  if (m===4)  add(29);
+  if (m===5)  add(3, 4, 5);
+  if (m===7)  add(nthMon(7,3));
+  if (m===8)  add(11);
+  if (m===9)  add(nthMon(9,3), autumnal());
+  if (m===10) add(nthMon(10,2));
+  if (m===11) add(3, 23);
+
+  // 振替休日: 日曜が祝日 → 翌月曜も休
+  [...h].forEach(d => {
+    if (new Date(y, m-1, d).getDay() === 0 && d+1 <= last) h.add(d+1);
+  });
+  // 国民の休日: 祝日に挟まれた平日
+  for (let d = 2; d < last; d++) {
+    if (new Date(y, m-1, d).getDay() !== 0 && h.has(d-1) && h.has(d+1)) h.add(d);
+  }
+  return h;
+}
+
+function updateStickyTop() {
+  const hh = document.querySelector('.app-header').offsetHeight;
+  const th = document.querySelector('.tab-nav').offsetHeight;
+  document.documentElement.style.setProperty('--header-h', hh + 'px');
+  document.documentElement.style.setProperty('--tabs-h', (hh + th) + 'px');
+}
+
+// ── Render ────────────────────────────────────────
+function renderTabs(numWeeks) {
+  document.getElementById('tabNav').innerHTML =
+    Array.from({length: numWeeks}, (_, w) =>
+      `<button class="tab-btn" onclick="switchTab(${w})">第${w+1}週</button>`
+    ).join('') + `<button class="tab-btn" onclick="switchTab(${numWeeks})">今月の結果</button>`;
+
+  document.getElementById('panesContainer').innerHTML =
+    Array.from({length: numWeeks}, (_, w) =>
+      `<div id="pane-${w}" class="pane"></div>`
+    ).join('') + `<div id="pane-monthly" class="pane"></div>`;
+}
+
+function renderWeightGraph(weekIdx) {
+  const { numWeeks, day1js, last } = monthInfo(yr, mo);
+
+  if (weekIdx === undefined || weekIdx === null) weekIdx = currentTab;
+  const isMonthly = weekIdx >= numWeeks;
+  const elId = isMonthly ? 'weekGraph-monthly' : `weekGraph-${weekIdx}`;
+  const el = document.getElementById(elId);
+  if (!el) return;
+
+  // 行動項目ごとの系列（series[actionId] = [値...]）
+  const series = {};
+  ACTIONS.forEach(a => { series[a.id] = []; });
+  const xlbls = [];
+  const num = v => (v !== '' && v !== undefined && v !== null && !isNaN(parseFloat(v))) ? parseFloat(v) : null;
+
+  if (isMonthly) {
+    // 1日〜月末の全データ
+    for (let date = 1; date <= last; date++) {
+      xlbls.push(date);
+      const vals = {};
+      for (let w = 0; w < numWeeks; w++) {
+        const s = 1 - day1js + w * 7;
+        const di = date - s;
+        if (di < 0 || di > 6) continue;
+        ACTIONS.forEach(a => {
+          const inp = document.getElementById(`${a.id}-${w}-${di}`);
+          vals[a.id] = inp ? inp.value : ((data.weeks[w][a.id] && data.weeks[w][a.id][di]) || '');
+        });
+        break;
+      }
+      ACTIONS.forEach(a => series[a.id].push(num(vals[a.id])));
+    }
+  } else {
+    const w = weekIdx;
+    const s = 1 - day1js + w * 7;
+    const prevYr = mo===1?yr-1:yr, prevMo = mo===1?12:mo-1;
+    const nextYr = mo===12?yr+1:yr, nextMo = mo===12?1:mo+1;
+    const prevLast = new Date(prevYr, prevMo, 0).getDate();
+    const prevD = loadAdjMonth(prevYr, prevMo);
+    const nextD = loadAdjMonth(nextYr, nextMo);
+    for (let di = 0; di < 7; di++) {
+      const date = s + di;
+      const vals = {};
+      let lbl = null;
+      if (date >= 1 && date <= last) {
+        lbl = date;
+        ACTIONS.forEach(a => {
+          const inp = document.getElementById(`${a.id}-${w}-${di}`);
+          vals[a.id] = inp ? inp.value : (data.weeks[w][a.id]?.[di] || '');
+        });
+      } else if (date < 1) {
+        const ad = prevLast + date;
+        lbl = ad;
+        const pos = findInMonth(prevYr, prevMo, ad);
+        ACTIONS.forEach(a => { vals[a.id] = pos ? (prevD.weeks[pos.aw]?.[a.id]?.[pos.adi] || '') : ''; });
+      } else {
+        const ad = date - last;
+        lbl = ad;
+        const pos = findInMonth(nextYr, nextMo, ad);
+        ACTIONS.forEach(a => { vals[a.id] = pos ? (nextD.weeks[pos.aw]?.[a.id]?.[pos.adi] || '') : ''; });
+      }
+      xlbls.push(lbl);
+      ACTIONS.forEach(a => series[a.id].push(num(vals[a.id])));
+    }
+  }
+
+  if (!ACTIONS.some(a => series[a.id].some(v => v !== null))) { el.innerHTML = ''; return; }
+
+  const isLight = document.body.classList.contains('theme-light');
+  const lc  = isLight ? 'rgba(0,0,0,.75)'  : 'rgba(255,255,255,.6)';
+  const tc  = isLight ? 'rgba(0,0,0,.85)'  : 'rgba(255,255,255,.88)';
+  const xca = isLight ? 'rgba(0,0,0,.4)'   : 'rgba(255,255,255,.35)';
+  const xcb = isLight ? 'rgba(0,0,0,.12)'  : 'rgba(255,255,255,.1)';
+  const dot = isLight ? '#111' : '#fff';
+
+  function lineChart(vals, labels, filterId, showValLabels) {
+    const valid = vals.filter(v => v !== null);
+    if (!valid.length) return '';
+    let minV = Math.min(...valid), maxV = Math.max(...valid);
+    if (maxV - minV < 0.5) { minV -= 0.5; maxV += 0.5; }
+    const W = Math.max(320, (el.closest('.pane')?.clientWidth || window.innerWidth) - 40), H = 66, padT = 18, padB = 14, padX = 16;
+    const innerH = H - padT - padB;
+    const innerW = W - padX * 2;
+    const n = vals.length;
+    const step = n > 1 ? innerW / (n - 1) : 0;
+    const xOf = i => n > 1 ? padX + i * step : W / 2;
+    const yOf = v => padT + innerH - ((v - minV) / (maxV - minV)) * innerH;
+
+    const allPts = [];
+    vals.forEach((v, i) => {
+      if (v !== null) allPts.push(`${xOf(i).toFixed(1)},${yOf(v).toFixed(1)}`);
+    });
+    const segs = allPts.length >= 2 ? [allPts] : [];
+
+    // 実際のパス長を計算してdasharray/dotタイミングを完全同期
+    const DRAW_SPEED = 1000; // px/s 固定
+    const cumDist = new Array(vals.length).fill(null);
+    let runDist = 0, prevPt = null;
+    vals.forEach((v, i) => {
+      if (v === null) return;
+      const pt = [xOf(i), yOf(v)];
+      if (prevPt) runDist += Math.sqrt((pt[0]-prevPt[0])**2 + (pt[1]-prevPt[1])**2);
+      cumDist[i] = runDist;
+      prevPt = pt;
+    });
+    const totalLen = runDist || 1;
+    const DUR = Math.max(0.15, totalLen / DRAW_SPEED);
+
+    let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" style="display:block">
+    <defs><filter id="${filterId}" filterUnits="userSpaceOnUse" x="0" y="-10" width="${W}" height="${H+20}">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter></defs>`;
+
+    segs.forEach(pts => {
+      if (pts.length < 2) return;
+      let sl = 0;
+      for (let i = 1; i < pts.length; i++) {
+        const [x1,y1] = pts[i-1].split(',').map(Number);
+        const [x2,y2] = pts[i].split(',').map(Number);
+        sl += Math.sqrt((x2-x1)**2+(y2-y1)**2);
+      }
+      svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${lc}" stroke-width="1.5" stroke-linejoin="round" filter="url(#${filterId})" stroke-dasharray="${sl.toFixed(1)}" stroke-dashoffset="${sl.toFixed(1)}"><animate attributeName="stroke-dashoffset" from="${sl.toFixed(1)}" to="0" dur="${DUR}s" begin="0s" fill="freeze" calcMode="linear"/></polyline>`;
+    });
+
+    vals.forEach((v, i) => {
+      const x = xOf(i);
+      const lbl = labels[i];
+      const t = cumDist[i] !== null ? (cumDist[i] / totalLen * DUR).toFixed(2) : '0.00';
+      const showLbl = lbl !== null && (!isMonthly || lbl === 1 || (lbl % 5 === 0 && lbl < last - 1) || lbl === last);
+      svg += `<text x="${x.toFixed(1)}" y="${H - 1}" text-anchor="middle" font-size="10" fill="${showLbl ? xca : xcb}" font-family="-apple-system,sans-serif" opacity="0">${showLbl ? lbl : ''}<animate attributeName="opacity" from="0" to="1" dur="0.1s" begin="${t}s" fill="freeze"/></text>`;
+      if (v === null) return;
+      const y = yOf(v);
+      svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5" fill="${dot}" filter="url(#${filterId})" opacity="0"><animate attributeName="opacity" from="0" to="1" dur="0.1s" begin="${t}s" fill="freeze"/></circle>`;
+      if (showValLabels) svg += `<text x="${x.toFixed(1)}" y="${Math.max(11, y - 5).toFixed(1)}" text-anchor="middle" font-size="10" fill="${tc}" font-family="-apple-system,sans-serif" opacity="0">${v}<animate attributeName="opacity" from="0" to="1" dur="0.1s" begin="${t}s" fill="freeze"/></text>`;
+    });
+
+    svg += `</svg>`;
+    return svg;
+  }
+
+  el.innerHTML = ACTIONS.map((a, i) => {
+    const vals = series[a.id];
+    if (!vals.some(v => v !== null)) return '';
+    return `<div${i ? ' style="margin-top:8px"' : ''}>
+      <div class="graph-label">${a.name} ${a.unit}</div>
+      ${lineChart(vals, xlbls, `wg-neon-${a.id}`, !isMonthly)}
+    </div>`;
+  }).join('');
+}
+
+function renderAll() {
+  const { numWeeks } = monthInfo(yr, mo);
+  renderTabs(numWeeks);
+  for (let w = 0; w < numWeeks; w++) renderWeek(w);
+  renderMonthly();
+  updateProgress();
+  requestAnimationFrame(updateStickyTop);
+}
+
+// ── 隣月データ ヘルパー ─────────────────────────────
+function monthInfoFor(y, m) {
+  const last = new Date(y, m, 0).getDate();
+  const day1js = new Date(y, m-1, 1).getDay();
+  return { last, day1js };
+}
+function findInMonth(y, m, date) {
+  const { day1js } = monthInfoFor(y, m);
+  for (let aw = 0; aw < 6; aw++)
+    for (let adi = 0; adi < 7; adi++)
+      if (1 - day1js + aw * 7 + adi === date) return { aw, adi };
+  return null;
+}
+function adjMonthKey(y, m) {
+  return `ura-${localStorage.getItem(A_USER)||'default'}-${y}-${String(m).padStart(2,'0')}`;
+}
+function loadAdjMonth(y, m) {
+  try { const d = JSON.parse(localStorage.getItem(adjMonthKey(y, m))); if (d?.weeks) return d; } catch(e) {}
+  return blank();
+}
+function saveAdjMonth(y, m, aw, adi, field, val) {
+  const d = loadAdjMonth(y, m);
+  if (!Array.isArray(d.weeks[aw]?.[field])) { if (d.weeks[aw]) d.weeks[aw][field] = Array(7).fill(''); }
+  if (d.weeks[aw]) d.weeks[aw][field][adi] = val;
+  localStorage.setItem(adjMonthKey(y, m), JSON.stringify(d));
+}
+function renderWeek(w) {
+  const wd   = data.weeks[w];
+  const hols = getHolidays(yr, mo);
+  const { last, day1js } = monthInfo(yr, mo);
+  const wkStart = 1 - day1js + w * 7;
+
+  // 隣月
+  const prevYr = mo === 1 ? yr-1 : yr, prevMo = mo === 1 ? 12 : mo-1;
+  const nextYr = mo === 12 ? yr+1 : yr, nextMo = mo === 12 ? 1 : mo+1;
+  const prevLast = new Date(prevYr, prevMo, 0).getDate();
+  const prevData = loadAdjMonth(prevYr, prevMo);
+  const nextData = loadAdjMonth(nextYr, nextMo);
+
+  // 未来日ロック判定（明日以降は入力不可・今日は入力可）
+  const t = new Date();
+  const isFutureMo = yr > t.getFullYear() || (yr === t.getFullYear() && mo > t.getMonth() + 1);
+  const todayD = (yr === t.getFullYear() && mo === t.getMonth() + 1) ? t.getDate() : null;
+  const isFuture = date => isFutureMo || (todayD !== null && date > todayD);
+  const isCellFuture = (cy, cm, cd) => {
+    const ty = t.getFullYear(), tm = t.getMonth()+1, td = t.getDate();
+    if (cy > ty) return true; if (cy < ty) return false;
+    if (cm > tm) return true; if (cm < tm) return false;
+    return cd > td;
+  };
+
+  // diごとの隣月情報
+  function adjOf(di) {
+    const date = wkStart + di;
+    if (date < 1) {
+      const ad = prevLast + date;
+      const pos = findInMonth(prevYr, prevMo, ad);
+      return pos ? { y: prevYr, m: prevMo, d: ad, aw: pos.aw, adi: pos.adi, data: prevData } : null;
+    }
+    if (date > last) {
+      const ad = date - last;
+      const pos = findInMonth(nextYr, nextMo, ad);
+      return pos ? { y: nextYr, m: nextMo, d: ad, aw: pos.aw, adi: pos.adi, data: nextData } : null;
+    }
+    return null;
+  }
+
+  // ヘッダー生成（共通）
+  function makeHeader() {
+    return `<div class="day-header-row"><div></div>${DAYS.map((d, di) => {
+      const date = wkStart + di;
+      const adj = adjOf(di);
+      if (adj) {
+        const jsD = new Date(adj.y, adj.m-1, adj.d).getDay();
+        const cls = jsD===6?' sat':jsD===0?' sun':'';
+        return `<div class="day-head${cls}">${d}<span class="day-num">${adj.d}</span></div>`;
+      }
+      const jsD = new Date(yr, mo-1, date).getDay();
+      const cls = jsD===6?' sat':(jsD===0||hols.has(date))?' sun':'';
+      const futCls = isFuture(date)?' future':'';
+      return `<div class="day-head${cls}${futCls}">${d}<span class="day-num">${date}</span></div>`;
+    }).join('')}</div>`;
+  }
+
+  // 日付表示（週全体）
+  const fd = wkStart, ld = wkStart + 6;
+  let dateDisplay;
+  if (fd < 1)        dateDisplay = `${prevMo}月${prevLast+fd}日 — ${mo}月${Math.min(ld,last)}日`;
+  else if (ld > last) dateDisplay = `${mo}月${fd}日 — ${nextMo}月${ld-last}日`;
+  else               dateDisplay = `${mo}月${fd}日 — ${mo}月${ld}日`;
+
+  // カウンター：週内のどの日にも入力できる（既定は今日、なければ入力可能な最終日）
+  const selectable = [];
+  for (let di = 0; di < 7; di++) {
+    const date = wkStart + di;
+    if (date >= 1 && date <= last && !isFuture(date)) selectable.push(di);
+  }
+  const todayDi = todayD !== null ? todayD - wkStart : -1;
+  if (counterDay[w] === undefined || !selectable.includes(counterDay[w])) {
+    counterDay[w] = selectable.includes(todayDi) ? todayDi
+      : (selectable.length ? selectable[selectable.length - 1] : -1);
+  }
+  const selDi = counterDay[w];
+  const counterHtml = selDi < 0 ? '' : `
+    <div class="counter-wrap">
+      <div class="counter-title">記録する日</div>
+      <div class="counter-days">
+        ${DAYS.map((d, di) => {
+          const date = wkStart + di;
+          const ok = selectable.includes(di);
+          const isToday = di === todayDi;
+          return `<button class="cday${di===selDi?' on':''}${ok?'':' off'}${isToday?' today':''}"
+            ${ok ? `onclick="setCounterDay(${w},${di})"` : 'disabled'}>${d}<span>${date>=1&&date<=last?date:'-'}</span></button>`;
+        }).join('')}
+      </div>
+      ${ACTIONS.map(a => {
+        const cur = parseInt((wd[a.id] && wd[a.id][selDi]) || 0) || 0;
+        const goal = getGoal(a.id);
+        const total = getMonthTotal(a.id);
+        const rate = goal > 0 ? Math.round(total / goal * 100) : 0;
+        return `<div class="counter-item">
+          <div class="counter-row">
+            <div class="counter-name">${a.name}</div>
+            <button class="counter-btn" onclick="stepCount('${a.id}',${w},-1,event)">−</button>
+            <div class="counter-val" id="cval-${a.id}-${w}">${cur}<span class="counter-unit">${a.unit}</span></div>
+            <button class="counter-btn" onclick="stepCount('${a.id}',${w},1,event)">＋</button>
+          </div>
+          <div class="counter-goal" id="gbar-${a.id}-${w}">
+            <div class="goal-bar"><div class="goal-bar-fill${rate>=100?' done':''}" style="width:${Math.min(rate,100)}%"></div></div>
+            <div class="counter-goal-txt">${goal > 0 ? `今月 ${Math.round(total*10)/10}/${goal}${a.unit}・${rate}%` : `今月 ${Math.round(total*10)/10}${a.unit}`}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  document.getElementById(`pane-${w}`).innerHTML = `
+    <div class="pane-title-row">
+      <div class="pane-title">第${w+1}週</div>
+      <div class="date-display">${dateDisplay}</div>
+    </div>
+    ${counterHtml}
+    <div id="weekGraph-${w}" class="weight-graph"></div>
+    <div class="week-delta">
+      ${ACTIONS.map(a =>
+        `<div class="delta-pill"><div class="delta-label">今週の${a.name}</div><div class="delta-val" id="wdelta-${a.id}-${w}">— ${a.unit}</div></div>`
+      ).join('')}
+    </div>
+    ${makeHeader()}
+    ${ACTIONS.map(a => `
+    <div class="check-row"><div class="item-label">${a.name} ${a.unit}</div>${
+      DAYS.map((_,di) => {
+        const date = wkStart + di;
+        const adj = adjOf(di);
+        if (adj) {
+          if (isCellFuture(adj.y, adj.m, adj.d)) return `<div class="check-cell future-cell"></div>`;
+          const val = adj.data.weeks[adj.aw]?.[a.id]?.[adj.adi] || '';
+          return `<input class="measure-cell" type="number" inputmode="numeric" step="1" min="0" autocomplete="one-time-code" data-form-type="other" data-lpignore="true" placeholder="—"
+            value="${val}"
+            oninput="saveAdjMonth(${adj.y},${adj.m},${adj.aw},${adj.adi},'${a.id}',this.value)">`;
+        }
+        if (isFuture(date)) return `<div class="check-cell future-cell"></div>`;
+        return `<input class="measure-cell" type="number" inputmode="numeric" step="1" min="0" autocomplete="one-time-code" data-form-type="other" data-lpignore="true" placeholder="—"
+          id="${a.id}-${w}-${di}" value="${(wd[a.id]&&wd[a.id][di])||''}"
+          onfocus="setCounterDay(${w},${di})"
+          oninput="syncCounterVal('${a.id}',${w},${di});updateWeekDelta(${w});autoSave()">`;
+      }).join('')
+    }</div>`).join('')}`;
+
+  updateWeekDelta(w);
+}
+
+// ＋/− カウンター操作（選択中の日のセルを increment / decrement する）
+function setCounterDay(w, di) {
+  if (counterDay[w] === di) return;
+  counterDay[w] = di;
+  refreshCounter(w);
+}
+
+// カウンター表示だけを更新する（ペイン全体を再描画しないので入力中でも安全）
+function refreshCounter(w) {
+  const di = counterDay[w];
+  const pane = document.getElementById(`pane-${w}`);
+  if (!pane || di === undefined || di < 0) return;
+  pane.querySelectorAll('.cday').forEach((b, i) => b.classList.toggle('on', i === di));
+  ACTIONS.forEach(a => {
+    const cell = document.getElementById(`cval-${a.id}-${w}`);
+    if (!cell) return;
+    const v = parseInt((data.weeks[w][a.id] && data.weeks[w][a.id][di]) || 0) || 0;
+    cell.innerHTML = `${v}<span class="counter-unit">${a.unit}</span>`;
+  });
+}
+
+// 月次ページで、この月の目標を保存する
+function saveMonthGoal(aid, val) {
+  setGoal(aid, val);
+  renderMonthly();
+  renderWeightGraph(currentTab);
+  updateProgress();
+  const { numWeeks } = monthInfo(yr, mo);
+  for (let w = 0; w < numWeeks; w++) refreshGoalBars(w);
+}
+
+// 週ページの進捗バーを更新する
+function refreshGoalBars(w) {
+  ACTIONS.forEach(a => {
+    const el = document.getElementById(`gbar-${a.id}-${w}`);
+    if (!el) return;
+    const goal = getGoal(a.id);
+    const total = getMonthTotal(a.id);
+    const rate = goal > 0 ? Math.round(total / goal * 100) : 0;
+    const fill = el.querySelector('.goal-bar-fill');
+    const txt  = el.querySelector('.counter-goal-txt');
+    if (fill) { fill.style.width = `${Math.min(rate,100)}%`; fill.classList.toggle('done', rate >= 100); }
+    if (txt) txt.textContent = goal > 0 ? `今月 ${Math.round(total*10)/10}/${goal}${a.unit}・${rate}%` : `今月 ${Math.round(total*10)/10}${a.unit}`;
+  });
+}
+
+// グリッドに直接入力された値をカウンター表示へ反映
+function syncCounterVal(aid, w, di) {
+  if (counterDay[w] !== di) return;
+  const inp = document.getElementById(`${aid}-${w}-${di}`);
+  const cell = document.getElementById(`cval-${aid}-${w}`);
+  const a = actionById(aid);
+  if (!inp || !cell) return;
+  cell.innerHTML = `${parseInt(inp.value) || 0}<span class="counter-unit">${a ? a.unit : UNIT}</span>`;
+}
+
+function stepCount(aid, w, delta, ev) {
+  const di = counterDay[w];
+  if (di === undefined || di < 0) return;
+  const inp = document.getElementById(`${aid}-${w}-${di}`);
+  const stored = (data.weeks[w][aid] && data.weeks[w][aid][di]) || '';
+  const cur  = parseInt(inp ? inp.value : stored) || 0;
+  const next = Math.max(0, cur + delta);
+  if (next === cur) return;
+
+  const val = next === 0 ? '' : String(next);
+  if (!Array.isArray(data.weeks[w][aid])) data.weeks[w][aid] = Array(7).fill('');
+  data.weeks[w][aid][di] = val;
+  if (inp) inp.value = val;
+
+  const cell = document.getElementById(`cval-${aid}-${w}`);
+  const a = actionById(aid);
+  if (cell) {
+    cell.innerHTML = `${next}<span class="counter-unit">${a ? a.unit : UNIT}</span>`;
+    cell.classList.remove('bump'); void cell.offsetWidth; cell.classList.add('bump');
+  }
+  if (inp) { inp.classList.remove('flash'); void inp.offsetWidth; inp.classList.add('flash'); }
+  if (delta > 0 && ev) showCountPop(ev, '+1');
+  if (navigator.vibrate) navigator.vibrate(delta > 0 ? 18 : 10);
+
+  updateWeekDelta(w);
+  refreshGoalBars(w);
+  updateProgress();
+  autoSave();
+}
+
+function showCountPop(ev, txt) {
+  const p = document.createElement('div');
+  p.className = 'counter-pop';
+  p.textContent = txt;
+  const x = ev.clientX !== undefined ? ev.clientX : (window.innerWidth / 2);
+  const y = ev.clientY !== undefined ? ev.clientY : 100;
+  p.style.cssText = `left:${x}px;top:${y - 14}px`;
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 850);
+}
+
+function updateWeekDelta(w) {
+  const { last, day1js } = monthInfo(yr, mo);
+  const wkStart = 1 - day1js + w * 7;
+  const prevYr = mo===1?yr-1:yr, prevMo = mo===1?12:mo-1;
+  const nextYr = mo===12?yr+1:yr, nextMo = mo===12?1:mo+1;
+  const prevLast = new Date(prevYr, prevMo, 0).getDate();
+
+  function getDayVal(di, key) {
+    const date = wkStart + di;
+    if (date >= 1 && date <= last) {
+      const inp = document.getElementById(`${key}-${w}-${di}`);
+      const v = inp ? inp.value : (data.weeks[w][key]?.[di] || '');
+      return v !== '' && !isNaN(parseFloat(v)) ? parseFloat(v) : null;
+    } else if (date < 1) {
+      const ad = prevLast + date;
+      const pos = findInMonth(prevYr, prevMo, ad);
+      if (!pos) return null;
+      const d = loadAdjMonth(prevYr, prevMo);
+      const v = d.weeks[pos.aw]?.[key]?.[pos.adi] || '';
+      return v !== '' && !isNaN(parseFloat(v)) ? parseFloat(v) : null;
+    } else {
+      const ad = date - last;
+      const pos = findInMonth(nextYr, nextMo, ad);
+      if (!pos) return null;
+      const d = loadAdjMonth(nextYr, nextMo);
+      const v = d.weeks[pos.aw]?.[key]?.[pos.adi] || '';
+      return v !== '' && !isNaN(parseFloat(v)) ? parseFloat(v) : null;
+    }
+  }
+
+  // 行動カウンターは「今週の合計」を表示する
+  ACTIONS.forEach(a => {
+    const el = document.getElementById(`wdelta-${a.id}-${w}`);
+    if (!el) return;
+    let total = 0, hasAny = false;
+    for (let di = 0; di < 7; di++) {
+      const v = getDayVal(di, a.id);
+      if (v !== null) { total += v; hasAny = true; }
+    }
+    if (!hasAny) { el.textContent = `— ${a.unit}`; el.className = 'delta-val'; return; }
+    el.textContent = `${Math.round(total*10)/10} ${a.unit}`;
+    el.className = total > 0 ? 'delta-val pos' : 'delta-val';
+  });
+}
+
+// 週データから指定項目の月内合計を返す
+function getMonthTotal(key) {
+  const { last, day1js, numWeeks } = monthInfo(yr, mo);
+  let total = 0;
+  for (let w = 0; w < numWeeks; w++) {
+    const s = 1 - day1js + w * 7;
+    for (let di = 0; di < 7; di++) {
+      const date = s + di;
+      if (date < 1 || date > last) continue;
+      const v = data.weeks[w][key] && data.weeks[w][key][di];
+      if (v !== '' && v !== undefined && v !== null && !isNaN(parseFloat(v))) total += parseFloat(v);
+    }
+  }
+  return total;
+}
+
+function renderMonthly() {
+  const m = data.monthly;
+
+  // 項目ごとの「目標・実績・進捗」行（目標はこの月だけの値として編集できる）
+  function goalRow(a) {
+    const total = getMonthTotal(a.id);
+    const goal  = getGoal(a.id);
+    const rate  = goal > 0 ? Math.round(total / goal * 100) : 0;
+    const rest  = goal > 0 ? Math.max(0, goal - total) : 0;
+    return `<div class="goal-row">
+      <div class="goal-row-top">
+        <div class="goal-row-name">${a.name}</div>
+        <div class="goal-row-num">
+          <strong${goal > 0 && rate >= 100 ? ' class="done"' : ''}>${Math.round(total*10)/10}</strong>
+          <span>/</span>
+          <input class="goal-input" type="number" inputmode="numeric" min="0" placeholder="目標"
+            value="${goal > 0 ? goal : ''}" onchange="saveMonthGoal('${a.id}',this.value)">
+          <span class="goal-row-unit">${a.unit}</span>
+        </div>
+      </div>
+      <div class="goal-bar"><div class="goal-bar-fill${rate >= 100 ? ' done' : ''}" style="width:${Math.min(rate,100)}%"></div></div>
+      <div class="goal-row-sub">${goal > 0 ? `達成率 ${rate}%　${rate >= 100 ? '目標達成' : `あと ${Math.round(rest*10)/10}${a.unit}`}` : '目標を入力すると進捗が表示されます'}</div>
+    </div>`;
+  }
+
+  const totalsHtml = ACTIONS.length
+    ? ACTIONS.map(goalRow).join('')
+    : `<div style="color:var(--muted);font-size:12px;letter-spacing:1px;margin-bottom:16px">行動項目が設定されていません</div>`;
+
+  document.getElementById('pane-monthly').innerHTML = `
+    <div class="section-label" style="margin-bottom:12px;">月間目標と進捗</div>
+    ${totalsHtml}
+    <div class="sep" style="margin:20px 0"></div>
+    <div class="pane-title">${yr}年${mo}月の結果</div>
+    <div id="weekGraph-monthly" class="weight-graph"></div>
+    <div class="sep" style="margin-top:20px"></div>
+    <div class="section-label">振り返り</div>
+    <div class="memo-wrap">
+      <div class="memo-label">今月「よくできた」行動（1〜2つ）</div>
+      <textarea class="memo" id="m-good" placeholder="例：接待の翌朝、毎回補正食を実践できた" oninput="autoSave()">${m.good||''}</textarea>
+    </div>
+    <div class="memo-wrap">
+      <div class="memo-label">来月「改善する」と決めた行動（1つだけ）</div>
+      <textarea class="memo" id="m-improve" placeholder="例：夜の炭水化物を控える日を週3日以上にする" oninput="autoSave()">${m.improve||''}</textarea>
+    </div>
+    <div class="memo-wrap">
+      <div class="memo-label">今月の自分を褒めろ</div>
+      <textarea class="memo" id="m-notes" placeholder="自由記入" oninput="autoSave()">${m.notes||''}</textarea>
+    </div>`;
+}
+
+// ── Interactions ──────────────────────────────────
+function switchTab(idx) {
+  currentTab = idx;
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+  document.querySelectorAll('.pane').forEach((p,i) => p.classList.toggle('active', i===idx));
+  const { numWeeks } = monthInfo(yr, mo);
+  if (idx === numWeeks) { collect(); renderMonthly(); }
+  renderWeightGraph(idx);
+}
+
+function changeMonth(dir) {
+  collect();
+  counterDay = {};
+  mo += dir;
+  if (mo > 12) { mo = 1; yr++; }
+  if (mo < 1)  { mo = 12; yr--; }
+  document.getElementById('monthLabel').textContent = `${yr}年${mo}月`;
+  closePicker();
+  load(); renderAll(); switchTab(0);
+  updateTodayBtn();
+}
+
+// ── Month picker ──────────────────────────────────
+let pickerYr = yr;
+
+function togglePicker() {
+  const p = document.getElementById('monthPicker');
+  if (p.classList.toggle('open')) {
+    pickerYr = yr;
+    renderPicker();
+  }
+}
+
+function closePicker() {
+  document.getElementById('monthPicker').classList.remove('open');
+}
+
+function shiftYear(d) {
+  pickerYr += d;
+  renderPicker();
+}
+
+function renderPicker() {
+  document.getElementById('pickerYr').textContent = `${pickerYr}年`;
+  document.getElementById('pickerMonths').innerHTML =
+    Array.from({length:12}, (_,i) => {
+      const m = i + 1;
+      const active = (pickerYr === yr && m === mo) ? ' active' : '';
+      return `<button class="picker-month-btn${active}" onclick="applyYrMo(${pickerYr},${m})">${m}月</button>`;
+    }).join('');
+}
+
+function goToday() {
+  collect();
+  counterDay = {};
+  yr = now.getFullYear();
+  mo = now.getMonth() + 1;
+  document.getElementById('monthLabel').textContent = `${yr}年${mo}月`;
+  closePicker();
+  load(); renderAll(); switchTab(currentWeekIdx());
+  updateTodayBtn();
+}
+
+function updateTodayBtn() {
+  const t = new Date();
+  const isCurrent = yr === t.getFullYear() && mo === t.getMonth() + 1;
+  document.getElementById('todayBtn').classList.toggle('current', isCurrent);
+}
+
+function applyYrMo(y, m) {
+  collect(); counterDay = {}; yr = y; mo = m;
+  document.getElementById('monthLabel').textContent = `${yr}年${mo}月`;
+  closePicker();
+  load(); renderAll(); switchTab(currentWeekIdx());
+  updateTodayBtn();
+}
+
+// ヘッダーの月間目標サマリー（項目ごとの 実績/目標 と進捗バー）
+function renderHeaderGoals() {
+  const el = document.getElementById('headerGoals');
+  if (!el) return;
+  if (!ACTIONS.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.innerHTML = ACTIONS.map(a => {
+    const goal  = getGoal(a.id);
+    const total = getMonthTotal(a.id);
+    const rate  = goal > 0 ? Math.round(total / goal * 100) : 0;
+    return `<div class="hgoal${goal > 0 && rate >= 100 ? ' done' : ''}" onclick="switchTab(monthInfo(yr,mo).numWeeks)">
+      <div class="hgoal-name">${a.name}</div>
+      <div class="hgoal-num">${Math.round(total*10)/10}${goal > 0 ? `<span>/${goal}</span>` : ''}</div>
+      <div class="hgoal-bar"><div class="hgoal-bar-fill" style="width:${Math.min(rate,100)}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// 月間目標に対する今月の達成率（目標未設定なら非表示）
+function updateProgress() {
+  renderHeaderGoals();
+  let actual = 0, target = 0;
+  ACTIONS.forEach(a => {
+    const g = getGoal(a.id);
+    if (g > 0) { target += g; actual += getMonthTotal(a.id); }
+  });
+  const meta = document.querySelector('.progress-meta');
+  const bg   = document.querySelector('.progress-bg');
+  if (!target) {
+    if (meta) meta.style.display = 'none';
+    if (bg)   bg.style.display = 'none';
+    return;
+  }
+  if (meta) meta.style.display = '';
+  if (bg)   bg.style.display = '';
+  const pct = Math.round(actual / target * 100);
+  document.getElementById('progressPct').textContent = `${pct}%`;
+  document.getElementById('progressFill').style.width = `${Math.min(pct, 100)}%`;
+}
+
+// ── Auth helpers ─────────────────────────────────
+const EYE_OPEN  = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_SHUT  = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+
+function togglePw(inputId, btn) {
+  const inp  = document.getElementById(inputId);
+  const show = inp.type === 'password';
+  inp.type   = show ? 'text' : 'password';
+  btn.innerHTML = show ? EYE_SHUT : EYE_OPEN;
+}
+
+// ── Auth ─────────────────────────────────────────
+const A_USER = 'ura-auth-user';
+const A_HASH = 'ura-auth-hash';
+const A_CRED = 'ura-auth-cred';
+const A_SESS = 'ura-session';
+
+// ── Firebase Firestore (REST API) ──────────────────────────
+const FB_PROJECT = 'ura-nomore-diet';
+const FB_API_KEY = 'AIzaSyCmWDzCHf1ueqHqftSgcbMGg0nzO7VEJRE';
+const FS_URL = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
+
+async function fsGet(docId) {
+  try {
+    const res = await fetch(`${FS_URL}/users/${encodeURIComponent(docId)}?key=${FB_API_KEY}`);
+    if (res.status === 404) return null;
+    const json = await res.json();
+    return json.fields || null;
+  } catch { return null; }
+}
+async function fsPatch(docId, fields) {
+  try {
+    await fetch(`${FS_URL}/users/${encodeURIComponent(docId)}?key=${FB_API_KEY}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields })
+    });
+  } catch {}
+}
+const fsStr = v => ({ stringValue: String(v) });
+const fsRead = f => f?.stringValue ?? null;
+
+// 全ユーザーデータをFirestoreへ保存（デバウンス付き）
+let _syncTimer = null;
+function scheduleCloudSync() {
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(pushToCloud, 3000);
+}
+async function pushToCloud() {
+  const userId = localStorage.getItem(A_USER);
+  if (!userId) return;
+  const dataObj = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k.startsWith(`ura-${userId}-`) || k === A_NAME || k === A_EMAIL || k === A_THEME) {
+      dataObj[k] = localStorage.getItem(k);
+    }
+  }
+  await fsPatch(userId, {
+    hash: fsStr(localStorage.getItem(A_HASH) || ''),
+    appData: fsStr(JSON.stringify(dataObj))
+  });
+}
+async function pullFromCloud(userId) {
+  const fields = await fsGet(userId);
+  if (!fields) return false;
+  const appData = fsRead(fields.appData);
+  if (appData) {
+    try {
+      const obj = JSON.parse(appData);
+      Object.entries(obj).forEach(([k, v]) => localStorage.setItem(k, v));
+    } catch {}
+  }
+  return true;
+}
+function goalsKey() { return `ura-${localStorage.getItem(A_USER)||'default'}-goals`; }
+function loadGoals() { try { return JSON.parse(localStorage.getItem(goalsKey())) || {}; } catch(e) { return {}; } }
+function saveGoals(g) { localStorage.setItem(goalsKey(), JSON.stringify(g)); }
+
+/* 月別の目標値。構造: { months: { '2026-09': { <actionId>: 50 } }, <actionId>: 旧・全月共通値 }
+   月別の値がなければ旧形式の共通値をフォールバックとして使う。 */
+function monthGoalKey(y, m) { return `${y}-${String(m).padStart(2,'0')}`; }
+function getGoal(aid, y, m) {
+  const g = loadGoals();
+  const mk = monthGoalKey(y === undefined ? yr : y, m === undefined ? mo : m);
+  const v = g.months?.[mk]?.[aid];
+  if (v !== undefined && v !== '' && v !== null) return parseFloat(v) || 0;
+  const legacy = parseFloat(g[aid]);
+  return isNaN(legacy) ? 0 : legacy;
+}
+function setGoal(aid, val, y, m) {
+  const g = loadGoals();
+  const mk = monthGoalKey(y === undefined ? yr : y, m === undefined ? mo : m);
+  if (!g.months) g.months = {};
+  if (!g.months[mk]) g.months[mk] = {};
+  const n = parseInt(val);
+  if (n > 0) g.months[mk][aid] = n; else delete g.months[mk][aid];
+  if (!Object.keys(g.months[mk]).length) delete g.months[mk];
+  saveGoals(g);
+  scheduleCloudSync();
+}
+const RP_ID  = window.location.hostname || 'localhost';
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function isLoggedIn() {
+  return localStorage.getItem(A_SESS) === '1' || sessionStorage.getItem(A_SESS) === '1';
+}
+
+function startApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appWrapper').style.display  = '';
+  document.getElementById('globalMenuBtn').style.display = 'flex';
+  document.getElementById('monthLabel').textContent = `${yr}年${mo}月`;
+  loadActions();
+  load(); renderAll(); switchTab(currentWeekIdx()); updateTodayBtn();
+
+  const saved = sessionStorage.getItem('ura-view');
+  if (saved) {
+    try {
+      const { type, yr: sYr, mo: sMo } = JSON.parse(saved);
+      if (type && sYr && sMo) {
+        graphYr = sYr; graphMo = sMo;
+        setViewport(_vpZoom);
+        document.getElementById('viewPage').style.display = '';
+        document.getElementById('appWrapper').style.visibility = 'hidden';
+        document.body.style.overflow = 'hidden';
+        applyViewPageSize();
+        switchView(type);
+      }
+    } catch(e) { sessionStorage.removeItem('ura-view'); }
+  }
+}
+
+function showMsg(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.className = `login-msg ${type||''}`;
+}
+
+function showSetup() {
+  document.getElementById('setupMode').style.display = '';
+  document.getElementById('loginMode').style.display = 'none';
+  showMsg('setupMsg','','');
+}
+
+function showLogin() {
+  document.getElementById('setupMode').style.display = 'none';
+  document.getElementById('loginMode').style.display = '';
+  showMsg('loginMsg','','');
+  checkFaceIdBtn();
+}
+
+async function checkFaceIdBtn() {
+  const btn = document.getElementById('faceIdBtn');
+  btn.style.display = 'none';
+  if (!window.PublicKeyCredential) return;
+  if (!localStorage.getItem(A_CRED)) return;
+  const avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(()=>false);
+  if (avail) btn.style.display = '';
+}
+
+function resetAccount() {
+  if (!confirm('アカウント情報をリセットしますか？\n記録データは残りますが、IDとパスワードが削除されます。')) return;
+  localStorage.removeItem(A_USER);
+  localStorage.removeItem(A_HASH);
+  localStorage.removeItem(A_CRED);
+  localStorage.removeItem(A_SESS);
+  sessionStorage.removeItem(A_SESS);
+  showSetup();
+  showMsg('setupMsg','リセットしました。新しいIDとパスワードを設定してください','ok');
+}
+
+function openPrivacyModal() {
+  document.getElementById('privacyModalOverlay').classList.add('open');
+}
+function closePrivacyModal(e) {
+  if (e && e.target !== document.getElementById('privacyModalOverlay')) return;
+  document.getElementById('privacyModalOverlay').classList.remove('open');
+}
+
+async function doSetup() {
+  const id  = document.getElementById('setupId').value.trim();
+  const pw  = document.getElementById('setupPw').value;
+  const pw2 = document.getElementById('setupPw2').value;
+  const agreed = document.getElementById('privacyCheck').checked;
+  if (!id)          return showMsg('setupMsg','IDを入力してください','err');
+  if (pw.length<4)  return showMsg('setupMsg','パスワードは4文字以上','err');
+  if (pw !== pw2)   return showMsg('setupMsg','パスワードが一致しません','err');
+  if (!agreed)      return showMsg('setupMsg','個人情報保護方針への同意が必要です','err');
+  showMsg('setupMsg','登録中…','');
+  const existing = await fsGet(id);
+  if (existing) return showMsg('setupMsg','このIDはすでに使われています','err');
+  const hash = await sha256(pw);
+  localStorage.setItem(A_USER, id);
+  localStorage.setItem(A_HASH, hash);
+  localStorage.removeItem(A_CRED);
+  await fsPatch(id, { hash: fsStr(hash), appData: fsStr('{}') });
+  saveSession(true);
+  startApp();
+}
+
+async function doLogin() {
+  const id   = document.getElementById('loginId').value.trim();
+  const pw   = document.getElementById('loginPw').value;
+  const stay = document.getElementById('stayCheck').checked;
+  if (!id || !pw) return showMsg('loginMsg','IDとパスワードを入力してください','err');
+  showMsg('loginMsg','確認中…','');
+  const fields = await fsGet(id);
+  if (!fields) return showMsg('loginMsg','IDが登録されていません','err');
+  const hash = await sha256(pw);
+  if (hash !== fsRead(fields.hash)) return showMsg('loginMsg','パスワードが違います','err');
+  localStorage.setItem(A_USER, id);
+  localStorage.setItem(A_HASH, hash);
+  await pullFromCloud(id);
+  saveSession(stay);
+  await offerFaceId();
+  startApp();
+}
+
+async function doFaceId() {
+  const credStr = localStorage.getItem(A_CRED);
+  if (!credStr) return;
+  try {
+    const credId  = new Uint8Array(credStr.split(',').map(Number));
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    await navigator.credentials.get({
+      publicKey: {
+        challenge, rpId: RP_ID, timeout: 60000,
+        userVerification: 'required',
+        allowCredentials: [{ id: credId, type: 'public-key', transports: ['internal'] }]
+      }
+    });
+    saveSession(document.getElementById('stayCheck').checked);
+    startApp();
+  } catch(e) {
+    showMsg('loginMsg', e.name === 'NotAllowedError' ? 'Face ID がキャンセルされました' : 'Face ID 認証に失敗しました', 'err');
+  }
+}
+
+async function offerFaceId() {
+  if (localStorage.getItem(A_CRED)) return;
+  if (!window.PublicKeyCredential) return;
+  const avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(()=>false);
+  if (!avail) return;
+  try {
+    const userId = localStorage.getItem(A_USER);
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        rp: { name: 'URA × TRME', id: RP_ID },
+        user: { id: new TextEncoder().encode(userId), name: userId, displayName: userId },
+        pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+        timeout: 60000,
+      }
+    });
+    localStorage.setItem(A_CRED, Array.from(new Uint8Array(cred.rawId)).join(','));
+  } catch(e) { /* Face ID 登録をスキップ */ }
+}
+
+function saveSession(stay) {
+  if (stay) { localStorage.setItem(A_SESS,'1'); sessionStorage.removeItem(A_SESS); }
+  else       { sessionStorage.setItem(A_SESS,'1'); }
+}
+
+function doLogout() {
+  localStorage.removeItem(A_SESS);
+  sessionStorage.removeItem(A_SESS);
+  document.getElementById('globalMenuBtn').style.display = 'none';
+  location.reload();
+}
+
+async function generateTransferUrl() {
+  const userId = localStorage.getItem(A_USER) || 'default';
+  const backup = { version: 1, exportedAt: new Date().toISOString(), userId, data: {} };
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith(`ura-${userId}-`) || key === A_USER || key === A_HASH || key === A_NAME || key === A_EMAIL || key === A_THEME) {
+      backup.data[key] = localStorage.getItem(key);
+    }
+  }
+  const json = JSON.stringify(backup);
+  let encoded;
+  try {
+    const stream = new CompressionStream('gzip');
+    const writer = stream.writable.getWriter();
+    writer.write(new TextEncoder().encode(json));
+    writer.close();
+    const buf = await new Response(stream.readable).arrayBuffer();
+    encoded = btoa(String.fromCharCode(...new Uint8Array(buf)));
+  } catch {
+    encoded = btoa(encodeURIComponent(json));
+  }
+  const url = `${location.origin}${location.pathname}#transfer=${encoded}`;
+  document.getElementById('transferUrlBox').style.display = '';
+  document.getElementById('transferUrlText').textContent = url;
+}
+
+async function copyTransferUrl() {
+  const url = document.getElementById('transferUrlText').textContent;
+  try {
+    await navigator.clipboard.writeText(url);
+    document.getElementById('transferCopyMsg').textContent = 'コピーしました';
+  } catch {
+    document.getElementById('transferCopyMsg').textContent = '上のURLを長押しでコピーしてください';
+  }
+}
+
+async function checkTransferHash() {
+  const hash = location.hash;
+  if (!hash.startsWith('#transfer=')) return;
+  const encoded = hash.slice('#transfer='.length);
+  history.replaceState(null, '', location.pathname);
+  let json;
+  try {
+    const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+    const stream = new DecompressionStream('gzip');
+    const writer = stream.writable.getWriter();
+    writer.write(bytes);
+    writer.close();
+    json = new TextDecoder().decode(await new Response(stream.readable).arrayBuffer());
+  } catch {
+    try { json = decodeURIComponent(atob(encoded)); } catch { return; }
+  }
+  try {
+    const backup = JSON.parse(json);
+    if (!backup.data) return;
+    if (!confirm(`PCからのデータを引き継ぎます。\n現在のデータは上書きされます。よろしいですか？`)) return;
+    Object.entries(backup.data).forEach(([key, val]) => localStorage.setItem(key, val));
+    alert('引き継ぎ完了しました。ページを再読み込みします。');
+    location.reload();
+  } catch { return; }
+}
+
+async function restoreFromCloud() {
+  const userId = localStorage.getItem(A_USER);
+  if (!userId) return showMsg('dataMsg', 'ログインが必要です', 'err');
+  showMsg('dataMsg', 'クラウドから復元中…', '');
+  const ok = await pullFromCloud(userId);
+  if (!ok) return showMsg('dataMsg', 'クラウドにデータが見つかりません', 'err');
+  showMsg('dataMsg', '復元完了。再読み込みします…', '');
+  setTimeout(() => location.reload(), 1200);
+}
+
+function exportData() {
+  const userId = localStorage.getItem(A_USER) || 'default';
+  const backup = { version: 1, exportedAt: new Date().toISOString(), userId, data: {} };
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith(`ura-${userId}-`) || key === A_USER || key === A_HASH || key === A_NAME || key === A_EMAIL || key === A_THEME) {
+      backup.data[key] = localStorage.getItem(key);
+    }
+  }
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ura-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showMsg('dataMsg', 'エクスポート完了しました', 'ok');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const backup = JSON.parse(e.target.result);
+      if (!backup.data) throw new Error('invalid');
+      if (!confirm(`${backup.exportedAt?.slice(0,10) || ''}のバックアップを復元します。現在のデータは上書きされます。よろしいですか？`)) return;
+      Object.entries(backup.data).forEach(([key, val]) => localStorage.setItem(key, val));
+      showMsg('dataMsg', '復元しました。ページを再読み込みします…', 'ok');
+      setTimeout(() => location.reload(), 1500);
+    } catch {
+      showMsg('dataMsg', 'ファイルが正しくありません', 'err');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+async function initAuth() {
+  if (isLoggedIn()) { startApp(); return; }
+  document.getElementById('loginScreen').style.display = '';
+  showLogin();
+}
+
+// ── Theme ─────────────────────────────────────────
+const A_THEME = 'ura-theme';
+const A_NAME  = 'ura-auth-name';
+const A_EMAIL = 'ura-auth-email';
+
+function applyTheme(name) {
+  document.body.classList.toggle('theme-light', name === 'light');
+  localStorage.setItem(A_THEME, name);
+  ['light','dark'].forEach(t => {
+    document.getElementById(`topt-${t}`)?.classList.toggle('selected', t === name);
+  });
+  // ビュー表示中なら再レンダリングして色を反映
+  const vp = document.getElementById('viewPage');
+  if (vp && vp.style.display !== 'none' && graphViewType) {
+    renderViewContent(graphViewType);
+  }
+  // メインページの週次グラフも再描画
+  if (typeof renderWeightGraph === 'function') {
+    const { numWeeks } = monthInfo(yr, mo);
+    for (let w = 0; w <= numWeeks; w++) renderWeightGraph(w);
+  }
+}
+function initTheme() { applyTheme(localStorage.getItem(A_THEME) || 'dark'); }
+function openThemeModal()  { document.getElementById('themeModal').style.display = ''; }
+function closeThemeModal() { document.getElementById('themeModal').style.display = 'none'; }
+
+// ── Account ───────────────────────────────────────
+function showAccountModal() {
+  document.getElementById('acctIdDisp').textContent = localStorage.getItem(A_USER) || '—';
+  document.getElementById('acctName').value  = localStorage.getItem(A_NAME)  || '';
+  document.getElementById('acctEmail').value = localStorage.getItem(A_EMAIL) || '';
+  ['acctOldPw','acctNewPw','acctNewPw2'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('acctMsg').textContent = '';
+  document.getElementById('acctModal').style.display = '';
+}
+function closeAccountModal() { document.getElementById('acctModal').style.display = 'none'; }
+
+function saveAccountInfo() {
+  const name  = document.getElementById('acctName').value.trim();
+  const email = document.getElementById('acctEmail').value.trim();
+  localStorage.setItem(A_NAME, name);
+  localStorage.setItem(A_EMAIL, email);
+  showMsg('acctMsg', '保存しました', 'ok');
+}
+
+async function changePassword() {
+  const oldPw  = document.getElementById('acctOldPw').value;
+  const newPw  = document.getElementById('acctNewPw').value;
+  const newPw2 = document.getElementById('acctNewPw2').value;
+  if (!oldPw) return showMsg('acctMsg', '現在のパスワードを入力してください', 'err');
+  if (await sha256(oldPw) !== localStorage.getItem(A_HASH))
+    return showMsg('acctMsg', '現在のパスワードが違います', 'err');
+  if (newPw.length < 4) return showMsg('acctMsg', '新しいパスワードは4文字以上', 'err');
+  if (newPw !== newPw2) return showMsg('acctMsg', 'パスワードが一致しません', 'err');
+  localStorage.setItem(A_HASH, await sha256(newPw));
+  ['acctOldPw','acctNewPw','acctNewPw2'].forEach(id => document.getElementById(id).value = '');
+  showMsg('acctMsg', 'パスワードを変更しました', 'ok');
+}
+
+// ── View Pages ────────────────────────────────────
+const _vpDefault = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+const _vpZoom    = 'width=device-width, initial-scale=1.0, viewport-fit=cover';
+function setViewport(v) {
+  const m = document.querySelector('meta[name="viewport"]');
+  if (m) m.content = v;
+}
+
+function applyViewPageSize() {
+  const vp = document.getElementById('viewPage');
+  if (!vp) return;
+  const land = window.innerWidth > window.innerHeight;
+  const isOpen = vp.style.display !== 'none';
+  vp.style.maxWidth  = land ? '100%' : '';
+  vp.style.left      = land ? '0'    : '';
+  vp.style.transform = land ? 'none' : '';
+  vp.classList.toggle('view-landscape', land && isOpen);
+}
+
+function saveViewState() {
+  if (graphViewType) {
+    sessionStorage.setItem('ura-view', JSON.stringify({ type: graphViewType, yr: graphYr, mo: graphMo }));
+  }
+}
+
+function openView(type) {
+  closeMenu();
+  graphYr = yr; graphMo = mo;
+  setViewport(_vpZoom);
+  document.getElementById('viewPage').style.display = '';
+  document.getElementById('appWrapper').style.visibility = 'hidden';
+  document.body.style.overflow = 'hidden';
+  applyViewPageSize();
+  switchView(type);
+}
+function switchView(type) {
+  graphViewType = type;
+  saveViewState();
+  document.querySelectorAll('.view-tab').forEach(b =>
+    b.classList.toggle('active', b.textContent.trim().toUpperCase() === type)
+  );
+  document.getElementById('viewBody').innerHTML =
+    '<div style="padding:24px 20px;font-size:10px;letter-spacing:3px;color:var(--muted)">Loading...</div>';
+  requestAnimationFrame(() => renderViewContent(type));
+}
+function closeViewPage() {
+  const vp = document.getElementById('viewPage');
+  vp.style.display = 'none';
+  vp.classList.remove('view-landscape');
+  document.getElementById('appWrapper').style.visibility = '';
+  document.body.style.overflow = '';
+  setViewport(_vpDefault);
+  sessionStorage.removeItem('ura-view');
+}
+
+function renderViewContent(type) {
+  collect();
+  const body = document.getElementById('viewBody');
+  switch (type) {
+    case 'DAILY':   body.innerHTML = buildDailyView();   break;
+    case 'WEEKLY':  body.innerHTML = buildWeeklyView();  break;
+    case 'MONTHLY': body.innerHTML = buildMonthlyView(); break;
+  }
+  updateViewZoomLimits();
+}
+
+function getSafeInsets() {
+  const s = getComputedStyle(document.documentElement);
+  return {
+    left:  parseFloat(s.getPropertyValue('--safe-l'))  || 0,
+    right: parseFloat(s.getPropertyValue('--safe-r'))  || 0
+  };
+}
+
+function updateViewZoomLimits() {
+  const el = document.querySelector('.view-scroll-area[data-graph-w]');
+  const graphW = el ? parseFloat(el.dataset.graphW) : 0;
+  const safe = getSafeInsets();
+  const land = window.innerWidth > window.innerHeight;
+  const vw = (window.innerWidth || 375) - (land ? safe.left + safe.right : 0);
+  const minScale = graphW > vw ? +(vw / graphW).toFixed(3) : 1.0;
+  setViewport(`width=device-width, initial-scale=1.0, minimum-scale=${minScale}, maximum-scale=5.0, viewport-fit=cover`);
+}
+
+function getStoredMonth(y, m) {
+  const user = localStorage.getItem(A_USER) || 'default';
+  const k = `ura-${user}-${y}-${String(m).padStart(2,'0')}`;
+  try { return JSON.parse(localStorage.getItem(k)) || null; }
+  catch(e) { return null; }
+}
+
+/* ── 指定月の行動データ取得 ───────────────────────── */
+// 指定月の日別値（1日〜末日の配列）
+function monthDailyValues(y, m, aid) {
+  const { last, day1js, numWeeks } = monthInfo(y, m);
+  const out = Array(last).fill(0);
+  const d = (y === yr && m === mo) ? data : getStoredMonth(y, m);
+  if (d?.weeks) {
+    for (let w = 0; w < numWeeks; w++) {
+      const s = 1 - day1js + w * 7;
+      for (let di = 0; di < 7; di++) {
+        const date = s + di;
+        if (date < 1 || date > last) continue;
+        const v = parseFloat(d.weeks[w]?.[aid]?.[di]);
+        if (!isNaN(v)) out[date - 1] = v;
+      }
+    }
+  }
+  return out;
+}
+function monthSumOf(y, m, aid) {
+  return monthDailyValues(y, m, aid).reduce((a, b) => a + b, 0);
+}
+
+/* ── Daily：選択中の月を日別に表示 ── */
+function buildDailyView() {
+  const gyr = graphYr, gmo = graphMo;
+  const { last } = monthInfo(gyr, gmo);
+  const labels = Array.from({ length: last }, (_, i) => String(i + 1));
+  const items = ACTIONS.map(a => {
+    const values = monthDailyValues(gyr, gmo, a.id);
+    const goal = getGoal(a.id, gyr, gmo);
+    return {
+      action: a, values,
+      total: values.reduce((x, y) => x + y, 0),
+      goal,
+      guide: goal > 0 ? goal / last : 0,   // 1日あたりの目安
+      guideLabel: goal > 0 ? `1日目安 ${(Math.round(goal / last * 10) / 10)}${a.unit}` : ''
+    };
+  });
+  return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Daily`, buildNavHtml(`${gyr}年${gmo}月`));
+}
+
+/* ── Weekly：選択中の月を週別（暦週）で表示 ── */
+function buildWeeklyView() {
+  const gyr = graphYr, gmo = graphMo;
+  const { numWeeks, day1js, last } = monthInfo(gyr, gmo);
+  const labels = Array.from({ length: numWeeks }, (_, w) => `W${w + 1}`);
+  const items = ACTIONS.map(a => {
+    const daily = monthDailyValues(gyr, gmo, a.id);
+    const values = [];
+    for (let w = 0; w < numWeeks; w++) {
+      const s = 1 - day1js + w * 7;
+      let sum = 0;
+      for (let di = 0; di < 7; di++) {
+        const date = s + di;
+        if (date >= 1 && date <= last) sum += daily[date - 1];
+      }
+      values.push(sum);
+    }
+    const goal = getGoal(a.id, gyr, gmo);
+    return {
+      action: a, values,
+      total: values.reduce((x, y) => x + y, 0),
+      goal,
+      guide: goal > 0 ? goal / numWeeks : 0,  // 1週あたりの目安
+      guideLabel: goal > 0 ? `1週目安 ${(Math.round(goal / numWeeks * 10) / 10)}${a.unit}` : ''
+    };
+  });
+  return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Weekly`, buildNavHtml(`${gyr}年${gmo}月`));
+}
+
+/* ── Monthly：選択中の年を月別に表示 ── */
+function buildMonthlyView() {
+  const gyr = graphYr;
+  const labels = Array.from({ length: 12 }, (_, i) => `${i + 1}月`);
+  const items = ACTIONS.map(a => {
+    const values = [], goals = [];
+    for (let m = 1; m <= 12; m++) {
+      values.push(monthSumOf(gyr, m, a.id));
+      goals.push(getGoal(a.id, gyr, m));
+    }
+    const goalSum = goals.reduce((x, y) => x + y, 0);
+    return {
+      action: a, values,
+      total: values.reduce((x, y) => x + y, 0),
+      goal: goalSum,
+      perBarGoals: goals,           // 月ごとに目標が違うので棒ごとに目標線を引く
+      guide: 0,
+      guideLabel: goalSum > 0 ? `年間目標 ${goalSum}${a.unit}` : '',
+      totalLabel: '年間実績'
+    };
+  });
+  return buildItemCharts(items, labels, `${gyr}年 — Monthly`, buildNavHtml(`${gyr}年`, 'year'));
+}
+
+/* ── 項目ごとの棒グラフ（目標線つき）を縦に並べる ── */
+function buildItemCharts(items, labels, subtitle, navHtml = '') {
+  const n = labels.length;
+  const isLight = document.body.classList.contains('theme-light');
+  const barC = isLight ? 'rgba(0,0,0,.72)'  : 'rgba(255,255,255,.72)';
+  const barD = isLight ? 'rgba(0,0,0,.95)'  : '#ffffff';
+  const txt  = isLight ? 'rgba(0,0,0,.85)'  : 'rgba(255,255,255,.85)';
+  const xc   = isLight ? 'rgba(0,0,0,.35)'  : 'rgba(255,255,255,.35)';
+  const gc   = isLight ? 'rgba(0,0,0,.13)'  : 'rgba(255,255,255,.13)';
+  const goalC= isLight ? 'rgba(0,0,0,.45)'  : 'rgba(255,255,255,.45)';
+
+  if (!items.length) {
+    return `<div class="view-graph-header">${navHtml}
+      <div style="padding:6px 20px 10px"><div style="font-size:13px;letter-spacing:2px;color:${xc};text-transform:uppercase">${subtitle}</div></div>
+    </div>
+    <div class="view-scroll-area items-view" data-graph-w="0"><div class="view-scroll-x">
+      <div style="color:${xc};font-size:12px;letter-spacing:1px;padding:20px 0">行動項目が設定されていません</div>
+    </div></div>`;
+  }
+
+  const safe = getSafeInsets();
+  const land = window.innerWidth > window.innerHeight;
+  const availW = Math.max(280, (window.innerWidth || 375) - 40 - (land ? safe.left + safe.right : 0));
+  const slotW = n <= 12 ? availW / n : Math.max(20, Math.min(46, availW / 12));
+  const W = Math.max(availW, slotW * n);
+
+  const GH = 96, padT = 16, padB = 2, xLH = 16;
+  const H = padT + GH + padB + xLH;
+  const barW = Math.max(6, Math.min(slotW * 0.56, 26));
+  const xOf = i => slotW * i + slotW / 2;
+
+  const panels = items.map((it, idx) => {
+    const a = it.action;
+    const maxV = Math.max(...it.values, it.guide, ...(it.perBarGoals || [0]), 1);
+    const yOf = v => padT + (GH - padT - padB) * (1 - v / maxV) + padB;
+    const baseY = padT + (GH - padB);
+    const rate = it.goal > 0 ? Math.round(it.total / it.goal * 100) : 0;
+    const done = it.goal > 0 && rate >= 100;
+
+    let svg = `<svg width="${W}" height="${H}" style="display:block;min-width:${W}px">`;
+    // 目盛り線
+    [0.25, 0.5, 0.75, 1].forEach(t => {
+      const y = (padT + (GH - padT - padB) * (1 - t) + padB).toFixed(1);
+      svg += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="${gc}" stroke-width="0.7"/>`;
+    });
+    // 棒
+    it.values.forEach((v, i) => {
+      const x = (xOf(i) - barW / 2).toFixed(1);
+      const h = Math.max(0, baseY - yOf(v)).toFixed(1);
+      const y = yOf(v).toFixed(1);
+      const delay = (i / Math.max(n, 1) * 0.5).toFixed(2);
+      const hit = it.perBarGoals ? (it.perBarGoals[i] > 0 && v >= it.perBarGoals[i]) : (it.guide > 0 && v >= it.guide);
+      if (v > 0) {
+        svg += `<rect x="${x}" y="${y}" width="${barW.toFixed(1)}" height="${h}" fill="${hit ? barD : barC}"${hit ? ' opacity="1"' : ' opacity=".55"'}>
+          <animate attributeName="height" from="0" to="${h}" dur="0.45s" begin="${delay}s" fill="freeze" calcMode="spline" keySplines="0.3 1 0.4 1"/>
+          <animate attributeName="y" from="${baseY.toFixed(1)}" to="${y}" dur="0.45s" begin="${delay}s" fill="freeze" calcMode="spline" keySplines="0.3 1 0.4 1"/>
+        </rect>`;
+        svg += `<text x="${xOf(i).toFixed(1)}" y="${Math.max(9, yOf(v) - 4).toFixed(1)}" text-anchor="middle" font-size="9" fill="${txt}" font-family="-apple-system,sans-serif" opacity="0">${Math.round(v*10)/10}<animate attributeName="opacity" from="0" to="1" dur="0.2s" begin="${(parseFloat(delay)+0.3).toFixed(2)}s" fill="freeze"/></text>`;
+      }
+      // 月ごとに目標が違う Monthly 用：棒ごとの目標マーカー
+      if (it.perBarGoals && it.perBarGoals[i] > 0) {
+        const gy = yOf(it.perBarGoals[i]).toFixed(1);
+        svg += `<line x1="${(xOf(i) - barW*0.75).toFixed(1)}" y1="${gy}" x2="${(xOf(i) + barW*0.75).toFixed(1)}" y2="${gy}" stroke="${goalC}" stroke-width="1.2" stroke-dasharray="3,2"/>`;
+      }
+    });
+    // 目安ライン（Daily/Weekly）
+    if (it.guide > 0) {
+      const gy = yOf(it.guide).toFixed(1);
+      svg += `<line x1="0" y1="${gy}" x2="${W}" y2="${gy}" stroke="${goalC}" stroke-width="1" stroke-dasharray="5,3"/>`;
+    }
+    // X軸ラベル
+    labels.forEach((lbl, i) => {
+      const show = n <= 16 || i === 0 || i === n - 1 || (i + 1) % 5 === 0;
+      if (!show) return;
+      svg += `<text x="${xOf(i).toFixed(1)}" y="${H - 3}" text-anchor="middle" font-size="10" fill="${xc}" font-family="-apple-system,sans-serif">${lbl}</text>`;
+    });
+    svg += `</svg>`;
+
+    return `<div class="ivpanel">
+      <div class="ivhead">
+        <div class="ivhead-name">${a.name}</div>
+        <div class="ivhead-num">
+          <strong${done ? ' class="done"' : ''}>${Math.round(it.total*10)/10}</strong>
+          ${it.goal > 0 ? `<span>/ ${it.goal}${a.unit}・${rate}%</span>` : `<span>${a.unit}</span>`}
+        </div>
+      </div>
+      ${it.goal > 0 ? `<div class="ivbar"><div class="ivbar-fill${done ? ' done' : ''}" style="width:${Math.min(rate,100)}%"></div></div>` : ''}
+      ${it.guideLabel ? `<div class="ivsub">${it.guideLabel}</div>` : ''}
+      ${svg}
+    </div>`;
+  }).join('');
+
+  return `<div class="view-graph-header">
+    ${navHtml}
+    <div style="padding:6px 20px 10px">
+      <div style="font-size:13px;letter-spacing:2px;color:${xc};text-transform:uppercase">${subtitle}</div>
+    </div>
+  </div>
+  <div class="view-scroll-area items-view" data-graph-w="${W}">
+    <div class="view-scroll-x">
+      ${panels}
+      <div style="height:40px"></div>
+    </div>
+  </div>`;
+}
+
+function buildNavHtml(label, mode = 'month') {
+  const btnStyle = `background:none;border:1px solid var(--border2);color:var(--white);width:36px;height:36px;font-size:16px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;flex-shrink:0`;
+  const todayBtnStyle = `background:none;border:1px solid var(--border2);color:var(--white);padding:0 14px;height:28px;font-size:10px;letter-spacing:2px;cursor:pointer;font-family:inherit`;
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px 6px;gap:10px">
+    <button style="${btnStyle}" onclick="navigateGraph(-1)">◀</button>
+    <span style="font-size:14px;letter-spacing:2px;color:var(--white);font-weight:300;text-align:center;flex:1">${label}</span>
+    <button style="${btnStyle}" onclick="navigateGraph(1)">▶</button>
+  </div>
+  <div style="display:flex;justify-content:center;padding:4px 20px 8px">
+    <button style="${todayBtnStyle}" onclick="goGraphToday()">TODAY</button>
+  </div>`;
+}
+
+function goGraphToday() {
+  const t = new Date();
+  graphYr = t.getFullYear();
+  graphMo = t.getMonth() + 1;
+  saveViewState();
+  collect();
+  const body = document.getElementById('viewBody');
+  switch (graphViewType) {
+    case 'DAILY':   body.innerHTML = buildDailyView();   break;
+    case 'WEEKLY':  body.innerHTML = buildWeeklyView();  break;
+    case 'MONTHLY': body.innerHTML = buildMonthlyView(); break;
+  }
+}
+
+function navigateGraph(delta) {
+  if (graphViewType === 'MONTHLY') {
+    graphYr += delta;
+  } else {
+    graphMo += delta;
+    if (graphMo > 12) { graphMo = 1; graphYr++; }
+    if (graphMo < 1)  { graphMo = 12; graphYr--; }
+  }
+  saveViewState();
+  collect();
+  const body = document.getElementById('viewBody');
+  switch (graphViewType) {
+    case 'DAILY':   body.innerHTML = buildDailyView();   break;
+    case 'WEEKLY':  body.innerHTML = buildWeeklyView();  break;
+    case 'MONTHLY': body.innerHTML = buildMonthlyView(); break;
+  }
+  updateViewZoomLimits();
+}
+
+// ── Menu ─────────────────────────────────────────
+function toggleMenu() {
+  const open = document.getElementById('menuDrawer').classList.toggle('open');
+  document.getElementById('menuOverlay').classList.toggle('open', open);
+  if (open) updateMenuActive();
+}
+
+function closeMenu() {
+  document.getElementById('menuDrawer').classList.remove('open');
+  document.getElementById('menuOverlay').classList.remove('open');
+}
+
+function updateMenuActive() {
+  const { numWeeks } = monthInfo(yr, mo);
+  const map = { daily: currentTab < numWeeks, weekly: currentTab < numWeeks, monthly: currentTab === numWeeks };
+  ['daily','weekly','monthly','theme','account'].forEach(k => {
+    document.getElementById(`mi-${k}`)?.classList.toggle('menu-active', !!map[k]);
+  });
+}
+
+function menuGo(section) {
+  closeMenu();
+  switch (section) {
+    case 'home':     closeViewPage(); switchTab(currentWeekIdx()); break;
+    case 'account':  showAccountModal();   break;
+    case 'daily':    openView('DAILY');    break;
+    case 'weekly':   openView('WEEKLY');   break;
+    case 'monthly':  openView('MONTHLY');  break;
+    case 'theme':    openThemeModal();     break;
+  }
+}
+
+function closeAccountModal() {
+  document.getElementById('acctModal').style.display = 'none';
+}
+
+// ── iOS keyboard scroll fix ──────────────────────
+let _lastScrollY = 0;
+let _kbOpen = false;
+
+// キーボードが閉じている間、常に最新スクロール位置を記録
+window.addEventListener('scroll', () => {
+  if (!_kbOpen) _lastScrollY = window.scrollY;
+}, { passive: true });
+
+document.addEventListener('focusin', e => {
+  if (e.target.tagName === 'INPUT') _kbOpen = true;
+});
+
+document.addEventListener('focusout', e => {
+  if (e.target.tagName === 'INPUT') {
+    _kbOpen = false;
+    // キーボードアニメーション完了後にスクロール位置を復元
+    setTimeout(() => {
+      if (!_kbOpen) window.scrollTo({ top: _lastScrollY, behavior: 'instant' });
+    }, 0);
+  }
+});
+
+// ── 画面回転・リサイズ対応 ──────────────────────────
+let _resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    updateStickyTop();
+    applyViewPageSize();
+    const vp = document.getElementById('viewPage');
+    if (vp && vp.style.display !== 'none') {
+      // applyViewPageSize() のレイアウト反映を待ってから再描画
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        collect();
+        const body = document.getElementById('viewBody');
+        switch (graphViewType) {
+          case 'DAILY':   body.innerHTML = buildDailyView();   break;
+          case 'WEEKLY':  body.innerHTML = buildWeeklyView();  break;
+          case 'MONTHLY': body.innerHTML = buildMonthlyView(); break;
+              }
+        updateViewZoomLimits();
+            }));
+    }
+  }, 150);
+});
+
+// ── Init ─────────────────────────────────────────
+initTheme();
+checkTransferHash().then(() => initAuth());
+</script>
+</body>
+</html>
