@@ -280,11 +280,10 @@ body {
   transition: border-color .15s, color .15s, box-shadow .15s;
 }
 .cday span { display: block; font-size: 9px; color: var(--muted); margin-top: 2px; }
-/* 今日は実線の枠（ダーク＝白／ライト＝黒） */
-.cday.today { border-style: solid; border-color: var(--white); }
+/* 選択中の日：塗りと枠で示す（光らせない） */
 .cday.on {
   border-color: var(--white); color: var(--white);
-  box-shadow: var(--neon-box); text-shadow: var(--neon);
+  background: var(--surface2);
 }
 .cday.on span { color: var(--white); }
 .cday.off { opacity: .25; cursor: not-allowed; }
@@ -293,8 +292,13 @@ body {
 .cday.sat span, .cday.sat.on span { color: rgba(85,153,255,.6); }
 .cday.sun, .cday.sun.on { color: #ff4444; }
 .cday.sun span, .cday.sun.on span { color: rgba(255,68,68,.6); }
-.cday.sat.on { text-shadow: 0 0 6px rgba(85,153,255,.7); }
-.cday.sun.on { text-shadow: 0 0 6px rgba(255,68,68,.7); }
+/* 光るのは「今日」だけ（ダーク＝白／ライト＝黒の実線枠＋発光） */
+.cday.today {
+  border-style: solid; border-color: var(--white);
+  box-shadow: var(--neon-box); text-shadow: var(--neon);
+}
+.cday.today.sat { box-shadow: 0 0 6px rgba(85,153,255,.5), 0 0 20px rgba(85,153,255,.18); text-shadow: 0 0 6px rgba(85,153,255,.7); }
+.cday.today.sun { box-shadow: 0 0 6px rgba(255,68,68,.5), 0 0 20px rgba(255,68,68,.18); text-shadow: 0 0 6px rgba(255,68,68,.7); }
 .counter-item { border-top: 1px solid var(--border); padding: 9px 0 10px; }
 .counter-row { display: flex; align-items: center; gap: 10px; }
 .counter-goal { margin-top: 7px; }
