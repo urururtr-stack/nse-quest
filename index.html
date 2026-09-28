@@ -53,7 +53,7 @@ body {
   position: sticky; top: 0; z-index: 50;
 }
 .header-brand {
-  font-size: 10px; letter-spacing: 5px; color: var(--white);
+  font-size: clamp(13px, 3.6vw, 16px); letter-spacing: 4px; color: var(--white);
   text-transform: uppercase; margin-bottom: 14px; font-weight: 400;
   text-shadow: var(--neon);
 }
@@ -62,7 +62,7 @@ body {
   display: flex; align-items: baseline; gap: 12px; min-width: 0;
 }
 .header-user {
-  font-size: 10px; letter-spacing: 3px; color: var(--white);
+  font-size: clamp(11px, 2.9vw, 13px); letter-spacing: 2px; color: var(--white);
   text-shadow: var(--neon-fine);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45vw;
 }
@@ -87,12 +87,14 @@ body {
   content: '▾'; font-size: 60px; letter-spacing: 0;
   opacity: .45; vertical-align: middle; position: relative; top: -4px;
 }
+/* Today / Daily / Weekly / Monthly の横並び */
+.quick-nav { display: flex; gap: 4px; }
 .today-btn {
-  display: block; margin: 0 auto;
+  flex: 1 1 0; min-width: 0; display: block; margin: 0;
   background: none; border: 1px solid var(--border2);
-  color: var(--muted); font-size: 9px; letter-spacing: 3px;
-  padding: 5px 16px; cursor: pointer; transition: all .15s;
-  text-transform: uppercase;
+  color: var(--white); font-size: clamp(8px, 2.2vw, 10px); letter-spacing: 1px;
+  padding: 6px 2px; cursor: pointer; transition: all .15s;
+  text-transform: uppercase; font-family: inherit; white-space: nowrap;
 }
 .today-btn:active { border-color: var(--white); color: var(--white); box-shadow: var(--neon-box); }
 .today-btn.current { border-color: var(--white); color: var(--white); text-shadow: var(--neon); }
@@ -823,7 +825,7 @@ body.theme-light .login-video  { display: none; }
   .hgoals       { grid-column: 1; grid-row: 2; }
   .header-main  { grid-column: 1; grid-row: 3; margin-bottom: 4px; }
   #monthPicker  { grid-column: 1; grid-row: 4; }
-  .today-btn    { grid-column: 1; grid-row: 4; margin: 4px 0 0; align-self: start; display: block; }
+  .quick-nav    { grid-column: 1; grid-row: 4; margin: 4px 0 0; align-self: start; }
   /* 達成率: 最下段 */
   /* 月ラベルを横画面サイズに縮小 */
   .month-label        { font-size: 18px; letter-spacing: 3px; }
@@ -831,12 +833,13 @@ body.theme-light .login-video  { display: none; }
   .nav-btn { width: 36px; height: 36px; font-size: 16px; }
   .menu-drawer { overflow-y: auto; }
   .menu-item { padding: 12px 28px; min-height: 44px; }
-  /* ワイド画面で項目名の列が伸びすぎないよう、記録エリアの幅を制限 */
+  /* 横画面でも記録エリアを画面いっぱいに使う */
   .pane-title-row, .counter-wrap, .week-total-box,
   .day-header-row, .check-row, .section-label, .result-row, .memo-wrap, .sep {
-    max-width: 640px;
+    max-width: none;
   }
   .day-header-row, .check-row { grid-template-columns: minmax(0, 150px) repeat(7, 1fr); }
+  .pane { padding: 16px max(20px, env(safe-area-inset-left)) 16px max(20px, env(safe-area-inset-right)); }
 }
 
 /* ── PC（横幅の広い画面）：画面いっぱいに使う ──
@@ -860,6 +863,8 @@ body.theme-light .login-video  { display: none; }
   .hgoal-name { font-size: 12px; letter-spacing: 1px; }
   .hgoal-num  { font-size: 18px; }
   .hgoal-num span { font-size: 12px; }
+  .quick-nav  { gap: 8px; }
+  .today-btn  { font-size: 11px; letter-spacing: 3px; padding: 8px 4px; }
   /* 幅に余裕があるので、週合計は文字を大きめに戻す */
   .delta-label { font-size: 11px; }
   .delta-val   { font-size: 24px; }
@@ -888,7 +893,7 @@ body.theme-light .login-video  { display: none; }
   flex-shrink: 0;
 }
 .view-header-brand {
-  font-size: 10px; letter-spacing: 5px; color: var(--white);
+  font-size: clamp(13px, 3.6vw, 16px); letter-spacing: 4px; color: var(--white);
   text-transform: uppercase; font-weight: 400; text-shadow: var(--neon);
   margin-bottom: 12px; cursor: pointer;
 }
@@ -1107,7 +1112,12 @@ body.theme-light .view-header { background: rgba(244,244,244,.96); }
     </div>
     <div class="picker-months-grid" id="pickerMonths"></div>
   </div>
-  <button class="today-btn" id="todayBtn" onclick="goToday()">Today</button>
+  <div class="quick-nav">
+    <button class="today-btn" id="todayBtn" onclick="goToday()">Today</button>
+    <button class="today-btn" onclick="openView('DAILY')">Daily</button>
+    <button class="today-btn" onclick="openView('WEEKLY')">Weekly</button>
+    <button class="today-btn" onclick="openView('MONTHLY')">Monthly</button>
+  </div>
 </header>
 
 <nav class="tab-nav" id="tabNav"></nav>
