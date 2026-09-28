@@ -280,12 +280,11 @@ body {
   transition: border-color .15s, color .15s, box-shadow .15s;
 }
 .cday span { display: block; font-size: 9px; color: var(--muted); margin-top: 2px; }
-/* 選択中の日：塗りと枠で示す（光らせない） */
+/* 選択中の日：背景色は他の曜日と同じまま、下線だけで示す（白枠・発光は今日専用） */
 .cday.on {
-  border-color: var(--white); color: var(--white);
-  background: var(--surface2);
+  border-color: var(--border2);
+  box-shadow: inset 0 -2px 0 var(--silver);
 }
-.cday.on span { color: var(--white); }
 .cday.off { opacity: .25; cursor: not-allowed; }
 /* 土曜は青、日曜・祝日は赤（選択中でも曜日色を維持） */
 .cday.sat, .cday.sat.on { color: #5599ff; }
