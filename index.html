@@ -1062,6 +1062,8 @@ body.theme-light .view-header { background: rgba(244,244,244,.96); }
     <!-- 新規登録 -->
     <div id="setupMode" style="display:none">
       <form onsubmit="doSetup();return false;" autocomplete="off">
+        <div class="login-field-label">名前</div>
+        <input class="login-input" id="setupName" type="text" autocomplete="name" placeholder="漢字フルネーム">
         <div class="login-field-label">メールアドレス（ログインID）</div>
         <input class="login-input" id="setupEmail" type="email" autocomplete="email" inputmode="email" placeholder="example@email.com">
         <div class="login-hint">パスワードを忘れたとき、このアドレスに再設定リンクを送ります</div>
@@ -2298,7 +2300,9 @@ async function doSetup() {
   const id    = email;   // メールアドレスがそのままログインID
   const pw  = document.getElementById('setupPw').value;
   const pw2 = document.getElementById('setupPw2').value;
+  const name = document.getElementById('setupName').value.trim();
   const agreed = document.getElementById('privacyCheck').checked;
+  if (!name) return showMsg('setupMsg','名前を入力してください','err');
   if (!isEmail(email)) return showMsg('setupMsg','メールアドレスを正しく入力してください','err');
   if (pw.length<8)  return showMsg('setupMsg','パスワードは8文字以上にしてください','err');
   if (pw !== pw2)   return showMsg('setupMsg','パスワードが一致しません','err');
@@ -2309,8 +2313,10 @@ async function doSetup() {
     localStorage.setItem(A_USER, id);
     localStorage.setItem(A_MAIL, email);
     localStorage.setItem(A_EMAIL, email);
+    localStorage.setItem(A_NAME, name);
     localStorage.removeItem(A_CRED);
     setAuthTokens(r, true);
+    renderHeaderUser();
     // この端末に既存の記録があればそのままクラウドへ引き継ぐ
     await pushToCloud();
     await offerFaceId();
