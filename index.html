@@ -27,6 +27,8 @@
   --white: #ffffff;
   --neon: 0 0 6px #fff, 0 0 18px rgba(255,255,255,.55), 0 0 40px rgba(255,255,255,.2);
   --neon-box: 0 0 6px rgba(255,255,255,.5), 0 0 20px rgba(255,255,255,.18);
+  /* 小さい文字用：芯を白く塗りつぶさず、外側のハローだけで光らせる */
+  --neon-fine: 0 0 3px rgba(255,255,255,.85), 0 0 9px rgba(255,255,255,.45), 0 0 20px rgba(255,255,255,.18);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 html { font-size: 16px; -webkit-text-size-adjust: 100%; }
@@ -55,6 +57,16 @@ body {
   text-transform: uppercase; margin-bottom: 14px; font-weight: 400;
   text-shadow: var(--neon);
 }
+/* ブランド名の横に出すアカウント名（細芯ネオンで小さくても潰れないようにする） */
+.header-brand-row {
+  display: flex; align-items: baseline; gap: 12px; min-width: 0;
+}
+.header-user {
+  font-size: 10px; letter-spacing: 3px; color: var(--white);
+  text-shadow: var(--neon-fine);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45vw;
+}
+.header-user:empty { display: none; }
 .header-main {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
 }
@@ -97,10 +109,12 @@ body {
   border: 1px solid var(--border2); background: var(--surface);
   padding: 6px 8px 7px;
 }
+/* 項目名はダーク＝ホワイト／ライト＝ブラックで、達成・未達の色に染めない */
 .hgoal-name {
-  font-size: 9px; letter-spacing: 1px; color: var(--muted);
+  font-size: 10px; letter-spacing: 1px; color: var(--white);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
 }
+.hgoal.done .hgoal-name, .hgoal.miss .hgoal-name { color: var(--white); }
 .hgoal-num {
   font-size: 14px; font-weight: 300; color: var(--white); letter-spacing: 1px;
   white-space: nowrap; margin-bottom: 5px;
@@ -158,21 +172,6 @@ body {
   100% { opacity: 0; transform: translate(var(--dx),var(--dy)) scale(0); }
 }
 
-.progress-meta {
-  display: flex; justify-content: space-between;
-  font-size: 11px; color: var(--muted); margin-bottom: 8px; letter-spacing: 2px;
-  text-transform: uppercase;
-}
-.progress-meta strong {
-  color: var(--white); font-weight: 400;
-  text-shadow: var(--neon);
-}
-.progress-bg { height: 2px; background: var(--border2); }
-.progress-fill {
-  height: 100%; transition: width 0.5s ease;
-  background: var(--white);
-  box-shadow: var(--neon-box);
-}
 
 /* ── Tabs ── */
 .tab-nav {
@@ -252,7 +251,10 @@ body {
   margin-top: 16px; margin-bottom: 4px;
   border-bottom: 1px solid var(--border);
 }
-.item-label { font-size: 11px; color: var(--silver); line-height: 1.4; padding-right: 4px; min-width: 0; word-break: keep-all; }
+.item-label {
+  font-size: clamp(12px, 3.4vw, 15px); color: var(--white); font-weight: 400;
+  line-height: 1.4; text-align: center; padding-right: 6px; min-width: 0; word-break: keep-all;
+}
 .day-head { text-align: center; font-size: 11px; color: var(--white); line-height: 1.2; }
 .day-head.sat { color: #5599ff; }
 .day-head.sun { color: #ff4444; }
@@ -271,6 +273,7 @@ body {
   font-size: 9px; letter-spacing: 3px; color: var(--muted);
   text-transform: uppercase; padding: 10px 0 6px;
 }
+.counter-day-label { color: var(--silver); letter-spacing: 1px; }
 .counter-days { display: flex; gap: 4px; padding-bottom: 10px; }
 .cday {
   flex: 1; min-width: 0; padding: 6px 0 5px;
@@ -280,10 +283,11 @@ body {
   transition: border-color .15s, color .15s, box-shadow .15s;
 }
 .cday span { display: block; font-size: 9px; color: var(--muted); margin-top: 2px; }
-/* 選択中の日：背景色は他の曜日と同じまま、下線だけで示す（白枠・発光は今日専用） */
+/* 選択中（表示中）の日：ゴールドのネオン枠 */
 .cday.on {
-  border-color: var(--border2);
-  box-shadow: inset 0 -2px 0 var(--silver);
+  border-color: #C9A84C;
+  box-shadow: 0 0 6px rgba(201,168,76,.85), 0 0 18px rgba(201,168,76,.45),
+              inset 0 0 10px rgba(201,168,76,.18);
 }
 .cday.off { opacity: .25; cursor: not-allowed; }
 /* 土曜は青、日曜・祝日は赤（選択中でも曜日色を維持） */
@@ -291,13 +295,38 @@ body {
 .cday.sat span, .cday.sat.on span { color: rgba(85,153,255,.6); }
 .cday.sun, .cday.sun.on { color: #ff4444; }
 .cday.sun span, .cday.sun.on span { color: rgba(255,68,68,.6); }
-/* 光るのは「今日」だけ（ダーク＝白／ライト＝黒の実線枠＋発光） */
+/* 光るのは「今日」だけ（ダーク＝白／ライト＝黒の実線枠＋発光）
+   文字は白のまま --neon-fine で光らせる（芯を塗りつぶさないので数字がつぶれない） */
 .cday.today {
-  border-style: solid; border-color: var(--white);
-  box-shadow: var(--neon-box); text-shadow: var(--neon);
+  border-style: solid; border-color: var(--white); color: var(--white); font-weight: 500;
+  text-shadow: var(--neon-fine);
+  box-shadow: 0 0 6px rgba(255,255,255,.55), 0 0 20px rgba(255,255,255,.22),
+              inset 0 0 12px rgba(255,255,255,.08);
 }
-.cday.today.sat { box-shadow: 0 0 6px rgba(85,153,255,.5), 0 0 20px rgba(85,153,255,.18); text-shadow: 0 0 6px rgba(85,153,255,.7); }
-.cday.today.sun { box-shadow: 0 0 6px rgba(255,68,68,.5), 0 0 20px rgba(255,68,68,.18); text-shadow: 0 0 6px rgba(255,68,68,.7); }
+.cday.today span { color: var(--white); font-weight: 500; text-shadow: var(--neon-fine); }
+.cday.today.sat, .cday.today.sat span {
+  text-shadow: 0 0 3px rgba(85,153,255,.85), 0 0 9px rgba(85,153,255,.45), 0 0 20px rgba(85,153,255,.18);
+}
+.cday.today.sun, .cday.today.sun span {
+  text-shadow: 0 0 3px rgba(255,68,68,.85), 0 0 9px rgba(255,68,68,.45), 0 0 20px rgba(255,68,68,.18);
+}
+.cday.today.sat {
+  box-shadow: 0 0 6px rgba(85,153,255,.55), 0 0 20px rgba(85,153,255,.22),
+              inset 0 0 12px rgba(85,153,255,.08);
+}
+.cday.today.sun {
+  box-shadow: 0 0 6px rgba(255,68,68,.55), 0 0 20px rgba(255,68,68,.22),
+              inset 0 0 12px rgba(255,68,68,.08);
+}
+.cday.today.sat span { color: #5599ff; }
+.cday.today.sun span { color: #ff4444; }
+body.theme-light .cday.today { box-shadow: var(--neon-box); }
+/* 今日かつ選択中：ゴールドのネオン枠（文字は今日の白発光のまま） */
+.cday.today.on {
+  border-color: #C9A84C;
+  box-shadow: 0 0 6px rgba(201,168,76,.85), 0 0 18px rgba(201,168,76,.45),
+              inset 0 0 10px rgba(201,168,76,.18);
+}
 .counter-item { border-top: 1px solid var(--border); padding: 9px 0 10px; }
 .counter-row { display: flex; align-items: center; gap: 10px; }
 .counter-goal { margin-top: 7px; }
@@ -312,6 +341,12 @@ body {
   transition: width .45s cubic-bezier(.4,0,.2,1);
 }
 .goal-bar-fill.done { background: #5599ff; box-shadow: 0 0 8px rgba(85,153,255,.7); }
+/* 月間目標の達成＝青、未達＝赤（項目名・進捗数値・進捗バー） */
+.counter-item.done .counter-name { color: #5599ff; }
+.counter-item.done .counter-goal-txt { color: rgba(85,153,255,.8); }
+.counter-item.miss .counter-name { color: #ff4444; }
+.counter-item.miss .counter-goal-txt { color: rgba(255,68,68,.8); }
+.goal-bar-fill.miss { background: #ff4444; box-shadow: 0 0 8px rgba(255,68,68,.55); }
 .goal-row { border: 1px solid var(--border2); background: var(--surface); padding: 12px 14px; margin-bottom: 8px; }
 .goal-row-top { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
 .goal-row-name { flex: 1; min-width: 0; font-size: 13px; color: var(--white); letter-spacing: 1px; }
@@ -319,7 +354,11 @@ body {
 .goal-row-num strong {
   font-size: 20px; font-weight: 200; color: var(--white); letter-spacing: 1px;
 }
+/* 月間目標の達成＝青、未達＝赤（項目名・進捗数値・進捗バー） */
+.goal-row.done .goal-row-name { color: #5599ff; }
+.goal-row.miss .goal-row-name { color: #ff4444; }
 .goal-row-num strong.done { color: #5599ff; text-shadow: 0 0 8px rgba(85,153,255,.75); }
+.goal-row-num strong.miss { color: #ff4444; text-shadow: 0 0 6px rgba(255,68,68,.55); }
 .goal-row-num span { color: var(--muted); font-size: 12px; }
 .goal-row-unit { font-size: 10px; color: var(--silver); }
 .goal-input {
@@ -378,15 +417,33 @@ body {
   100% { border-color: rgba(255,255,255,.22); box-shadow: none; }
 }
 
-/* ── Week delta ── */
-.week-delta { display: flex; gap: 8px; margin-top: 14px; }
-.delta-pill {
-  flex: 1; background: var(--surface); border: 1px solid var(--border2);
-  padding: 10px 12px;
+/* ── 週の合計 ── */
+.week-total-box {
+  border: 1px solid var(--border2); padding: 12px 14px 14px;
+  margin-top: 16px;
 }
-.delta-label { font-size: 8px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
+.week-total-title {
+  font-size: 9px; letter-spacing: 3px; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.week-total-range { letter-spacing: 1px; }
+/* 項目名・数字とも1行に収め、どの項目でも数字の位置が揃うようにする。
+   9項目を横スクロールなしで並べるため、文字サイズを画面幅に追従させる */
+.week-delta { display: flex; gap: 3px; }
+.delta-pill {
+  flex: 1 1 0; min-width: 0; background: var(--surface); border: 1px solid var(--border2);
+  padding: 9px 1px 10px; text-align: center;
+}
+.delta-label {
+  font-size: clamp(5.5px, 1.75vw, 8.5px); color: var(--muted); letter-spacing: 0;
+  text-transform: uppercase; margin-bottom: 5px; line-height: 1.4; height: 12px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 /* 今週の件数：ダークテーマは白、ライトテーマは黒 */
-.delta-val { font-size: 20px; font-weight: 200; letter-spacing: 2px; color: var(--white); }
+.delta-val {
+  font-size: clamp(14px, 4.2vw, 20px); font-weight: 200; letter-spacing: 0;
+  color: var(--white); white-space: nowrap; line-height: 1.2;
+}
 .check-cell {
   width: 100%; height: 38px; border: 1px solid rgba(255,255,255,.22); border-radius: 0;
   background: var(--surface); display: flex; align-items: center;
@@ -691,6 +748,30 @@ body.theme-light .menu-item:active { color: #000; }
 .menu-item.menu-active { color: var(--light); text-shadow: none; }
 body.theme-light .menu-item.menu-active { color: #555; text-shadow: none; }
 /* ── Account Modal ── */
+/* ── 保存完了トースト ── */
+.toast {
+  position: fixed; left: 50%; top: 50%; z-index: 500; pointer-events: none;
+  display: flex; align-items: center; gap: 12px;
+  padding: 18px 28px; background: var(--surface); border: 1px solid var(--border2);
+  color: var(--white); font-size: 11px; letter-spacing: 4px; white-space: nowrap;
+  box-shadow: var(--neon-box);
+  animation: toastIn .34s cubic-bezier(.3,1.4,.5,1) forwards,
+             toastOut .32s ease 1.2s forwards;
+}
+.toast svg { flex-shrink: 0; }
+.toast-check {
+  stroke-dasharray: 26; stroke-dashoffset: 26;
+  animation: toastDraw .4s cubic-bezier(.4,0,.2,1) .12s forwards;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%,-50%) scale(.82); }
+  to   { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+}
+@keyframes toastOut {
+  to { opacity: 0; transform: translate(-50%,-50%) scale(.96); }
+}
+@keyframes toastDraw { to { stroke-dashoffset: 0; } }
+
 .acct-modal {
   position: fixed; inset: 0; z-index: 300;
   display: flex; align-items: center; justify-content: center;
@@ -718,7 +799,7 @@ body.theme-light {
   --bg: #f4f4f4; --surface: #ffffff; --surface2: #ebebeb;
   --border: #e0e0e0; --border2: #d0d0d0; --mid: #aaaaaa;
   --muted: #999999; --light: #666666; --silver: #444444; --white: #111111;
-  --neon: none; --neon-box: 0 1px 6px rgba(0,0,0,.12), 0 2px 16px rgba(0,0,0,.08);
+  --neon: none; --neon-fine: none; --neon-box: 0 1px 6px rgba(0,0,0,.12), 0 2px 16px rgba(0,0,0,.08);
 }
 body.theme-light .app-header { background: rgba(244,244,244,.96); }
 body.theme-light .tab-nav    { background: rgba(244,244,244,.96); }
@@ -746,8 +827,6 @@ body.theme-light .login-video  { display: none; }
   #monthPicker  { grid-column: 1; grid-row: 4; }
   .today-btn    { grid-column: 1; grid-row: 4; margin: 4px 0 0; align-self: start; display: block; }
   /* 達成率: 最下段 */
-  .progress-meta { grid-column: 1; margin-top: 6px; }
-  .progress-bg   { grid-column: 1; }
   /* 月ラベルを横画面サイズに縮小 */
   .month-label        { font-size: 18px; letter-spacing: 3px; }
   .month-label::after { font-size: 32px; top: -2px; }
@@ -755,11 +834,34 @@ body.theme-light .login-video  { display: none; }
   .menu-drawer { overflow-y: auto; }
   .menu-item { padding: 12px 28px; min-height: 44px; }
   /* ワイド画面で項目名の列が伸びすぎないよう、記録エリアの幅を制限 */
-  .pane-title-row, .counter-wrap, .week-delta,
+  .pane-title-row, .counter-wrap, .week-total-box,
   .day-header-row, .check-row, .section-label, .result-row, .memo-wrap, .sep {
     max-width: 640px;
   }
   .day-header-row, .check-row { grid-template-columns: minmax(0, 150px) repeat(7, 1fr); }
+}
+
+/* ── PC（横幅の広い画面）：画面いっぱいに使う ──
+   横画面レイアウトでは記録エリアを 640px に制限しているが、PCではその制限を外す */
+@media (min-width: 900px) {
+  body, #appWrapper { max-width: 100%; }
+  .view-page { max-width: 100%; left: 0; transform: none; }
+  .app-header { position: static; }
+  .tab-nav    { position: static; }
+  .pane { padding: 24px 32px; }
+  .app-header, .view-header { padding-left: 32px; padding-right: 32px; }
+  .pane-title-row, .counter-wrap, .week-total-box,
+  .day-header-row, .check-row, .section-label, .result-row, .memo-wrap, .sep {
+    max-width: none;
+  }
+  .day-header-row, .check-row { grid-template-columns: minmax(0, 200px) repeat(7, 1fr); }
+  .item-label { font-size: 16px; }
+  .day-head   { font-size: 14px; }
+  /* 幅に余裕があるので、週合計は文字を大きめに戻す */
+  .delta-label { font-size: 11px; }
+  .delta-val   { font-size: 24px; }
+  .delta-pill  { padding: 12px 6px 13px; }
+  .week-delta  { gap: 8px; }
 }
 
 /* ── View Page landscape: ヘッダーごとスクロール ── */
@@ -845,13 +947,21 @@ body.theme-light .view-header { background: rgba(244,244,244,.96); }
 .ivhead-name { font-size: 13px; letter-spacing: 2px; color: var(--white); flex-shrink: 0; }
 .ivhead-num { font-size: 12px; color: var(--muted); letter-spacing: 1px; }
 .ivhead-num strong { font-size: 17px; font-weight: 300; color: var(--white); margin-right: 2px; }
-.ivhead-num strong.done { color: #5599ff; text-shadow: 0 0 8px rgba(85,153,255,.75); }
+/* 目標達成＝青、未達＝赤（項目名・進捗数値・進捗バー） */
+.ivpanel.done .ivhead-name { color: #5599ff; }
+.ivpanel.done .ivhead-num strong { color: #5599ff; text-shadow: 0 0 8px rgba(85,153,255,.75); }
+.ivpanel.done .ivhead-num span { color: rgba(85,153,255,.7); }
+.ivpanel.done .ivbar-fill { background: #5599ff; box-shadow: 0 0 8px rgba(85,153,255,.7); }
+.ivpanel.miss .ivhead-name { color: #ff4444; }
+.ivpanel.miss .ivhead-num strong { color: #ff4444; text-shadow: 0 0 8px rgba(255,68,68,.6); }
+.ivpanel.miss .ivhead-num span { color: rgba(255,68,68,.7); }
+.ivpanel.miss .ivbar-fill { background: #ff4444; box-shadow: 0 0 8px rgba(255,68,68,.55); }
 .ivbar {
   position: sticky; left: 0; width: 100%;
   height: 2px; background: var(--border); overflow: hidden; margin-bottom: 5px;
 }
 .ivbar-fill { height: 100%; background: var(--silver); transition: width .5s ease; }
-.ivbar-fill.done { background: #5599ff; box-shadow: 0 0 8px rgba(85,153,255,.7); }
+
 .ivsub {
   position: sticky; left: 0; width: 100%;
   font-size: 9px; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px;
@@ -974,7 +1084,10 @@ body.theme-light .view-header { background: rgba(244,244,244,.96); }
 
 <header class="app-header">
   <div class="header-top">
-    <div class="header-brand" onclick="goToday()" style="cursor:pointer">NSE Quest</div>
+    <div class="header-brand-row">
+      <div class="header-brand" onclick="goToday()" style="cursor:pointer">NSE Quest</div>
+      <span class="header-user" id="headerUser"></span>
+    </div>
     <button class="menu-btn" id="globalMenuBtn" onclick="toggleMenu()">≡</button>
   </div>
   <div class="hgoals" id="headerGoals"></div>
@@ -992,13 +1105,6 @@ body.theme-light .view-header { background: rgba(244,244,244,.96); }
     <div class="picker-months-grid" id="pickerMonths"></div>
   </div>
   <button class="today-btn" id="todayBtn" onclick="goToday()">Today</button>
-  <div class="progress-meta">
-    <span>今月の達成率</span>
-    <strong id="progressPct">0%</strong>
-  </div>
-  <div class="progress-bg">
-    <div class="progress-fill" id="progressFill" style="width:0%"></div>
-  </div>
 </header>
 
 <nav class="tab-nav" id="tabNav"></nav>
@@ -1026,6 +1132,17 @@ body.theme-light .view-header { background: rgba(244,244,244,.96); }
 </div>
 
 <!-- ── Account Modal ── -->
+<div class="acct-modal" id="reportModal" style="display:none" onclick="closeReport()">
+  <div class="acct-box" onclick="event.stopPropagation()" style="max-width:420px;max-height:82vh;overflow-y:auto">
+    <div class="acct-title">Report</div>
+    <pre id="reportText" style="font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.7;color:var(--light);white-space:pre-wrap;word-break:break-word;margin:14px 0 16px;max-height:44vh;overflow-y:auto;-webkit-user-select:text;user-select:text"></pre>
+    <div id="reportMsg" style="font-size:9px;letter-spacing:2px;color:var(--muted);min-height:14px;margin-bottom:10px"></div>
+    <button class="login-btn" onclick="shareReport()">共有する</button>
+    <button class="login-btn" onclick="copyReport()" style="margin-top:8px">コピー</button>
+    <button class="login-btn" onclick="closeReport()" style="margin-top:8px">閉じる</button>
+  </div>
+</div>
+
 <div class="acct-modal" id="acctModal" style="display:none" onclick="closeAccountModal()">
   <div class="acct-box" onclick="event.stopPropagation()" style="max-height:82vh;overflow-y:auto">
     <div class="acct-title">Account</div>
@@ -1034,9 +1151,9 @@ body.theme-light .view-header { background: rgba(244,244,244,.96); }
     <div class="acct-id" id="acctIdDisp"></div>
 
     <div class="acct-sublabel">名前</div>
-    <input class="login-input" id="acctName" type="text" placeholder="名前を入力" style="margin-bottom:18px">
+    <input class="login-input" id="acctName" type="text" placeholder="漢字フルネーム" style="margin-bottom:18px">
 
-    <button class="login-btn" onclick="saveAccountInfo()">プロフィールを保存</button>
+    <button class="login-btn" onclick="saveAccountInfo()">保存</button>
     <div class="login-sep"></div>
 
     <div style="font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px">パスワード変更</div>
@@ -1407,7 +1524,7 @@ function renderWeek(w) {
   const selDi = counterDay[w];
   const counterHtml = selDi < 0 ? '' : `
     <div class="counter-wrap">
-      <div class="counter-title">記録する日</div>
+      <div class="counter-title">記録する日　<span id="cdayLabel-${w}" class="counter-day-label">${mo}月${wkStart + selDi}日（${DAYS[selDi]}）</span></div>
       <div class="counter-days">
         ${DAYS.map((d, di) => {
           const date = wkStart + di;
@@ -1425,7 +1542,8 @@ function renderWeek(w) {
         const goal = getGoal(a.id);
         const total = getMonthTotal(a.id);
         const rate = goal > 0 ? Math.round(total / goal * 100) : 0;
-        return `<div class="counter-item">
+        const st = goalState(goal, rate);
+        return `<div class="counter-item${st}" id="citem-${a.id}-${w}">
           <div class="counter-row">
             <div class="counter-name">${a.name}</div>
             <button class="counter-btn" onclick="stepCount('${a.id}',${w},-1,event)">−</button>
@@ -1433,7 +1551,7 @@ function renderWeek(w) {
             <button class="counter-btn" onclick="stepCount('${a.id}',${w},1,event)">＋</button>
           </div>
           <div class="counter-goal" id="gbar-${a.id}-${w}">
-            <div class="goal-bar"><div class="goal-bar-fill${rate>=100?' done':''}" style="width:${Math.min(rate,100)}%"></div></div>
+            <div class="goal-bar"><div class="goal-bar-fill${st}" style="width:${Math.min(rate,100)}%"></div></div>
             <div class="counter-goal-txt">${goal > 0 ? `今月 ${Math.round(total*10)/10}/${goal}${a.unit}・${rate}%` : `今月 ${Math.round(total*10)/10}${a.unit}`}</div>
           </div>
         </div>`;
@@ -1446,14 +1564,17 @@ function renderWeek(w) {
       <div class="date-display">${dateDisplay}</div>
     </div>
     ${counterHtml}
-    <div class="week-delta">
-      ${ACTIONS.map(a =>
-        `<div class="delta-pill"><div class="delta-label">今週の${a.name}</div><div class="delta-val" id="wdelta-${a.id}-${w}">0 ${a.unit}</div></div>`
-      ).join('')}
+    <div class="week-total-box">
+      <div class="week-total-title">第${w+1}週の合計　<span class="week-total-range">${dateDisplay}</span></div>
+      <div class="week-delta">
+        ${ACTIONS.map(a =>
+          `<div class="delta-pill"><div class="delta-label">${a.name}</div><div class="delta-val" id="wdelta-${a.id}-${w}">0</div></div>`
+        ).join('')}
+      </div>
     </div>
     ${makeHeader()}
     ${ACTIONS.map(a => `
-    <div class="check-row"><div class="item-label">${a.name} ${a.unit}</div>${
+    <div class="check-row"><div class="item-label">${a.name}</div>${
       DAYS.map((_,di) => {
         const date = wkStart + di;
         const adj = adjOf(di);
@@ -1487,6 +1608,11 @@ function refreshCounter(w) {
   const pane = document.getElementById(`pane-${w}`);
   if (!pane || di === undefined || di < 0) return;
   pane.querySelectorAll('.cday').forEach((b, i) => b.classList.toggle('on', i === di));
+  const lbl = document.getElementById(`cdayLabel-${w}`);
+  if (lbl) {
+    const { day1js } = monthInfo(yr, mo);
+    lbl.textContent = `${mo}月${1 - day1js + w * 7 + di}日（${DAYS[di]}）`;
+  }
   ACTIONS.forEach(a => {
     const cell = document.getElementById(`cval-${a.id}-${w}`);
     if (!cell) return;
@@ -1504,6 +1630,12 @@ function saveMonthGoal(aid, val) {
   for (let w = 0; w < numWeeks; w++) refreshGoalBars(w);
 }
 
+// 月間目標に対する状態（達成＝青 / 未達＝赤 / 目標未設定＝通常色）
+function goalState(goal, rate) {
+  if (!(goal > 0)) return '';
+  return rate >= 100 ? ' done' : ' miss';
+}
+
 // 週ページの進捗バーを更新する
 function refreshGoalBars(w) {
   ACTIONS.forEach(a => {
@@ -1512,9 +1644,16 @@ function refreshGoalBars(w) {
     const goal = getGoal(a.id);
     const total = getMonthTotal(a.id);
     const rate = goal > 0 ? Math.round(total / goal * 100) : 0;
+    const st = goalState(goal, rate);
     const fill = el.querySelector('.goal-bar-fill');
     const txt  = el.querySelector('.counter-goal-txt');
-    if (fill) { fill.style.width = `${Math.min(rate,100)}%`; fill.classList.toggle('done', rate >= 100); }
+    const item = document.getElementById(`citem-${a.id}-${w}`);
+    if (item) { item.classList.toggle('done', st === ' done'); item.classList.toggle('miss', st === ' miss'); }
+    if (fill) {
+      fill.style.width = `${Math.min(rate,100)}%`;
+      fill.classList.toggle('done', st === ' done');
+      fill.classList.toggle('miss', st === ' miss');
+    }
     if (txt) txt.textContent = goal > 0 ? `今月 ${Math.round(total*10)/10}/${goal}${a.unit}・${rate}%` : `今月 ${Math.round(total*10)/10}${a.unit}`;
   });
 }
@@ -1638,8 +1777,7 @@ function updateWeekDelta(w) {
       const v = getDayVal(di, a.id);
       if (v !== null) { total += v; hasAny = true; }
     }
-    if (!hasAny) { el.textContent = `0 ${a.unit}`; el.className = 'delta-val'; return; }
-    el.textContent = `${Math.round(total*10)/10} ${a.unit}`;
+    el.textContent = String(hasAny ? Math.round(total*10)/10 : 0);
     el.className = 'delta-val';
   });
 }
@@ -1669,18 +1807,19 @@ function renderMonthly() {
     const goal  = getGoal(a.id);
     const rate  = goal > 0 ? Math.round(total / goal * 100) : 0;
     const rest  = goal > 0 ? Math.max(0, goal - total) : 0;
-    return `<div class="goal-row">
+    const st = goalState(goal, rate);
+    return `<div class="goal-row${st}">
       <div class="goal-row-top">
         <div class="goal-row-name">${a.name}</div>
         <div class="goal-row-num">
-          <strong${goal > 0 && rate >= 100 ? ' class="done"' : ''}>${Math.round(total*10)/10}</strong>
+          <strong${st ? ` class="${st.trim()}"` : ''}>${Math.round(total*10)/10}</strong>
           <span>/</span>
           <input class="goal-input" type="number" inputmode="numeric" min="0" placeholder="目標"
             value="${goal > 0 ? goal : ''}" onchange="saveMonthGoal('${a.id}',this.value)">
           <span class="goal-row-unit">${a.unit}</span>
         </div>
       </div>
-      <div class="goal-bar"><div class="goal-bar-fill${rate >= 100 ? ' done' : ''}" style="width:${Math.min(rate,100)}%"></div></div>
+      <div class="goal-bar"><div class="goal-bar-fill${st}" style="width:${Math.min(rate,100)}%"></div></div>
       <div class="goal-row-sub">${goal > 0 ? `達成率 ${rate}%　${rate >= 100 ? '目標達成' : `あと ${Math.round(rest*10)/10}${a.unit}`}` : '目標を入力すると進捗が表示されます'}</div>
     </div>`;
   }
@@ -1807,26 +1946,16 @@ function renderHeaderGoals() {
   }).join('');
 }
 
-// 月間目標に対する今月の達成率（目標未設定なら非表示）
+// ヘッダーの月間目標表示を更新する
 function updateProgress() {
   renderHeaderGoals();
-  let actual = 0, target = 0;
-  ACTIONS.forEach(a => {
-    const g = getGoal(a.id);
-    if (g > 0) { target += g; actual += getMonthTotal(a.id); }
-  });
-  const meta = document.querySelector('.progress-meta');
-  const bg   = document.querySelector('.progress-bg');
-  if (!target) {
-    if (meta) meta.style.display = 'none';
-    if (bg)   bg.style.display = 'none';
-    return;
-  }
-  if (meta) meta.style.display = '';
-  if (bg)   bg.style.display = '';
-  const pct = Math.round(actual / target * 100);
-  document.getElementById('progressPct').textContent = `${pct}%`;
-  document.getElementById('progressFill').style.width = `${Math.min(pct, 100)}%`;
+}
+
+// ブランド名の横にアカウント名を出す（名前が未登録ならログインIDで代用）
+function renderHeaderUser() {
+  const el = document.getElementById('headerUser');
+  if (!el) return;
+  el.textContent = (localStorage.getItem(A_NAME) || '').trim() || localStorage.getItem(A_USER) || '';
 }
 
 // ── Auth helpers ─────────────────────────────────
@@ -2020,6 +2149,7 @@ function startApp() {
   document.getElementById('appWrapper').style.display  = '';
   document.getElementById('globalMenuBtn').style.display = 'flex';
   document.getElementById('monthLabel').textContent = `${yr}年${mo}月`;
+  renderHeaderUser();
   loadActions();
   load(); renderAll(); switchTab(currentWeekIdx()); updateTodayBtn();
 
@@ -2369,8 +2499,26 @@ function closeAccountModal() { document.getElementById('acctModal').style.displa
 function saveAccountInfo() {
   const name = document.getElementById('acctName').value.trim();
   localStorage.setItem(A_NAME, name);
+  renderHeaderUser();
   scheduleCloudSync();
-  showMsg('acctMsg', '保存しました', 'ok');
+  showMsg('acctMsg', '', '');
+  showToast('保存しました');
+}
+
+// チェックマークが描かれる保存完了アニメーション
+function showToast(text) {
+  const prev = document.getElementById('appToast');
+  if (prev) prev.remove();
+  const el = document.createElement('div');
+  el.id = 'appToast';
+  el.className = 'toast';
+  el.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path class="toast-check" d="M4 12.5l5.2 5.2L20 6.5"/>
+    </svg><span></span>`;
+  el.querySelector('span').textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1700);
 }
 
 async function changePassword() {
@@ -2388,7 +2536,8 @@ async function changePassword() {
     const upd = await authCall('update', { idToken: r.idToken, password: newPw, returnSecureToken: true });
     setAuthTokens(upd, !!localStorage.getItem(A_RT));
     ['acctOldPw','acctNewPw','acctNewPw2'].forEach(x => document.getElementById(x).value = '');
-    showMsg('acctMsg', 'パスワードを変更しました', 'ok');
+    showMsg('acctMsg', '', '');
+    showToast('パスワードを変更しました');
   } catch (e) {
     showMsg('acctMsg', /INVALID_LOGIN|INVALID_PASSWORD/.test(e.message) ? '現在のパスワードが違います' : authErrMsg(e.message), 'err');
   }
@@ -2508,6 +2657,13 @@ function monthSumOf(y, m, aid) {
   return monthDailyValues(y, m, aid).reduce((a, b) => a + b, 0);
 }
 
+/* 目標ペースを「何日（何週間）に1件」で表す。1期間1件を超えるペースなら「1日に◯件」に切り替える */
+function paceLabel(goal, periods, unit, span = '日') {
+  return goal <= periods
+    ? `${Math.round(periods / goal)}${span}に1${unit}`
+    : `1${span}に${Math.round(goal / periods)}${unit}`;
+}
+
 /* ── Daily：選択中の月を日別に表示 ── */
 function buildDailyView() {
   const gyr = graphYr, gmo = graphMo;
@@ -2521,7 +2677,7 @@ function buildDailyView() {
       total: values.reduce((x, y) => x + y, 0),
       goal,
       guide: goal > 0 ? goal / last : 0,   // 1日あたりの目安
-      guideLabel: goal > 0 ? `1日目安 ${(Math.round(goal / last * 10) / 10)}${a.unit}` : ''
+      guideLabel: goal > 0 ? `目安 ${paceLabel(goal, last, a.unit)}` : ''
     };
   });
   return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Daily`, buildNavHtml(`${gyr}年${gmo}月`));
@@ -2550,10 +2706,10 @@ function buildWeeklyView() {
       total: values.reduce((x, y) => x + y, 0),
       goal,
       guide: goal > 0 ? goal / numWeeks : 0,  // 1週あたりの目安
-      guideLabel: goal > 0 ? `1週目安 ${(Math.round(goal / numWeeks * 10) / 10)}${a.unit}` : ''
+      guideLabel: goal > 0 ? `目安 ${paceLabel(goal, numWeeks, a.unit, '週間')}` : ''
     };
   });
-  return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Weekly`, buildNavHtml(`${gyr}年${gmo}月`));
+  return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Weekly`, buildNavHtml(`${gyr}年${gmo}月`), { zeroBase: true });
 }
 
 /* ── Monthly：選択中の年を月別に表示 ── */
@@ -2573,15 +2729,17 @@ function buildMonthlyView() {
       goal: goalSum,
       perBarGoals: goals,           // 月ごとに目標が違うので棒ごとに目標線を引く
       guide: 0,
-      guideLabel: goalSum > 0 ? `年間目標 ${goalSum}${a.unit}` : '',
+      guideLabel: '',
       totalLabel: '年間実績'
     };
   });
-  return buildItemCharts(items, labels, `${gyr}年 — Monthly`, buildNavHtml(`${gyr}年`, 'year'));
+  return buildItemCharts(items, labels, `${gyr}年 — Monthly`, buildNavHtml(`${gyr}年`, 'year'), { zeroBase: true, hideGoal: true });
 }
 
 /* ── 項目ごとの棒グラフ（目標線つき）を縦に並べる ── */
-function buildItemCharts(items, labels, subtitle, navHtml = '') {
+function buildItemCharts(items, labels, subtitle, navHtml = '', opts = {}) {
+  const zeroBase = !!opts.zeroBase;   // true なら 0（グラフ下端）を基準線にする
+  const hideGoal = !!opts.hideGoal;   // true なら目標数値・進捗バーを表示しない
   const n = labels.length;
   const isLight = document.body.classList.contains('theme-light');
   const barC = isLight ? 'rgba(0,0,0,.72)'  : 'rgba(255,255,255,.72)';
@@ -2603,12 +2761,13 @@ function buildItemCharts(items, labels, subtitle, navHtml = '') {
   const safe = getSafeInsets();
   const land = window.innerWidth > window.innerHeight;
   const availW = Math.max(280, (window.innerWidth || 375) - 40 - (land ? safe.left + safe.right : 0));
-  const slotW = n <= 12 ? availW / n : Math.max(20, Math.min(46, availW / 12));
-  const W = Math.max(availW, slotW * n);
+  const slotW = availW / n;          // 常に画面幅を n 等分して横スクロールをなくす
+  const W = availW;
+  const dense = n > 24;              // Daily（30〜31日）のように目盛りが細かいとき
 
   const GH = 96, padT = 16, padB = 2, xLH = 16;
   const H = padT + GH + padB + xLH;
-  const barW = Math.max(6, Math.min(slotW * 0.56, 26));
+  const barW = Math.max(3, Math.min(slotW * 0.6, 26));
   const xOf = i => slotW * i + slotW / 2;
 
   const panels = items.map((it, idx) => {
@@ -2619,8 +2778,8 @@ function buildItemCharts(items, labels, subtitle, navHtml = '') {
     const rate = it.goal > 0 ? Math.round(it.total / it.goal * 100) : 0;
     const done = it.goal > 0 && rate >= 100;
 
-    // 目安（点線）が基準線。目安がなければグラフ下端が基準線
-    const zeroY = it.guide > 0 ? yOf(it.guide) : baseY;
+    // 基準線：Daily は目安ライン、Weekly / Monthly は 0（グラフ下端）
+    const zeroY = (!zeroBase && it.guide > 0) ? yOf(it.guide) : baseY;
 
     let svg = `<svg width="${W}" height="${H}" style="display:block;min-width:${W}px">`;
     // 目盛り線
@@ -2632,12 +2791,14 @@ function buildItemCharts(items, labels, subtitle, navHtml = '') {
     it.values.forEach((v, i) => {
       const x = (xOf(i) - barW / 2).toFixed(1);
       const delay = (i / Math.max(n, 1) * 0.5).toFixed(2);
-      const barBase = (it.perBarGoals && it.perBarGoals[i] > 0) ? yOf(it.perBarGoals[i]) : zeroY;
+      const barBase = (!zeroBase && it.perBarGoals && it.perBarGoals[i] > 0) ? yOf(it.perBarGoals[i]) : zeroY;
       const vy = yOf(v);
       const up = vy <= barBase;
       const top = Math.min(vy, barBase);
       const h = Math.abs(barBase - vy);
-      const hit = it.perBarGoals ? (it.perBarGoals[i] > 0 && v >= it.perBarGoals[i]) : (it.guide > 0 && v >= it.guide);
+      const target = it.perBarGoals ? it.perBarGoals[i] : it.guide;
+      // Monthly（hideGoal）は目標と無関係に全ての棒を同じホワイト／ブラックで描く
+      const hit = hideGoal || (target > 0 && v >= target);
       if (v > 0 && h > 0.5) {
         svg += `<rect x="${x}" y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${hit ? barD : barC}" opacity="${hit ? 1 : .5}">
           <animate attributeName="height" from="0" to="${h.toFixed(1)}" dur="0.45s" begin="${delay}s" fill="freeze" calcMode="spline" keySplines="0.3 1 0.4 1"/>
@@ -2646,33 +2807,30 @@ function buildItemCharts(items, labels, subtitle, navHtml = '') {
       }
       if (v > 0) {
         const ty = up ? Math.max(9, vy - 4) : Math.min(padT + GH - 1, vy + 9);
-        svg += `<text x="${xOf(i).toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle" font-size="9" fill="${txt}" font-family="-apple-system,sans-serif" opacity="0">${Math.round(v*10)/10}<animate attributeName="opacity" from="0" to="1" dur="0.2s" begin="${(parseFloat(delay)+0.3).toFixed(2)}s" fill="freeze"/></text>`;
-      }
-      // 月ごとに目標が違う Monthly 用：棒ごとの目標マーカー
-      if (it.perBarGoals && it.perBarGoals[i] > 0) {
-        const gy = yOf(it.perBarGoals[i]).toFixed(1);
-        svg += `<line x1="${(xOf(i) - barW*0.75).toFixed(1)}" y1="${gy}" x2="${(xOf(i) + barW*0.75).toFixed(1)}" y2="${gy}" stroke="${goalC}" stroke-width="1.2" stroke-dasharray="3,2"/>`;
+        svg += `<text x="${xOf(i).toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle" font-size="${dense ? 7 : 9}" fill="${txt}" font-family="-apple-system,sans-serif" opacity="0">${Math.round(v*10)/10}<animate attributeName="opacity" from="0" to="1" dur="0.2s" begin="${(parseFloat(delay)+0.3).toFixed(2)}s" fill="freeze"/></text>`;
       }
     });
-    // 目安ライン（Daily/Weekly）＝棒の基準線
-    if (it.guide > 0) {
+    // 点線：Daily は目安ライン、Weekly / Monthly は 0 のライン（いずれも棒の基準線）
+    if (zeroBase || it.guide > 0) {
       svg += `<line x1="0" y1="${zeroY.toFixed(1)}" x2="${W}" y2="${zeroY.toFixed(1)}" stroke="${goalC}" stroke-width="1" stroke-dasharray="5,3"/>`;
     }
     // X軸ラベル（Dailyは全ての日付を表示）
     labels.forEach((lbl, i) => {
-      svg += `<text x="${xOf(i).toFixed(1)}" y="${H - 3}" text-anchor="middle" font-size="${n > 16 ? 8 : 10}" fill="${xc}" font-family="-apple-system,sans-serif">${lbl}</text>`;
+      svg += `<text x="${xOf(i).toFixed(1)}" y="${H - 3}" text-anchor="middle" font-size="${dense ? 7 : (n > 16 ? 8 : 10)}" fill="${xc}" font-family="-apple-system,sans-serif">${lbl}</text>`;
     });
     svg += `</svg>`;
 
-    return `<div class="ivpanel">
+    const miss = it.goal > 0 && rate < 100;
+    // Monthly（hideGoal）は項目名だけを通常色で出す
+    return `<div class="ivpanel${hideGoal ? '' : (done ? ' done' : '') + (miss ? ' miss' : '')}">
       <div class="ivhead">
         <div class="ivhead-name">${a.name}</div>
-        <div class="ivhead-num">
-          <strong${done ? ' class="done"' : ''}>${Math.round(it.total*10)/10}</strong>
+        ${hideGoal ? '' : `<div class="ivhead-num">
+          <strong>${Math.round(it.total*10)/10}</strong>
           ${it.goal > 0 ? `<span>/ ${it.goal}${a.unit}・${rate}%</span>` : `<span>${a.unit}</span>`}
-        </div>
+        </div>`}
       </div>
-      ${it.goal > 0 ? `<div class="ivbar"><div class="ivbar-fill${done ? ' done' : ''}" style="width:${Math.min(rate,100)}%"></div></div>` : ''}
+      ${(!hideGoal && it.goal > 0) ? `<div class="ivbar"><div class="ivbar-fill" style="width:${Math.min(rate,100)}%"></div></div>` : ''}
       ${it.guideLabel ? `<div class="ivsub">${it.guideLabel}</div>` : ''}
       ${svg}
     </div>`;
@@ -2700,9 +2858,170 @@ function buildNavHtml(label, mode = 'month') {
     <span style="font-size:14px;letter-spacing:2px;color:var(--white);font-weight:300;text-align:center;flex:1">${label}</span>
     <button style="${btnStyle}" onclick="navigateGraph(1)">▶</button>
   </div>
-  <div style="display:flex;justify-content:center;padding:4px 20px 8px">
+  <div style="display:flex;justify-content:center;gap:8px;padding:4px 20px 8px">
     <button style="${todayBtnStyle}" onclick="goGraphToday()">TODAY</button>
+    ${mode === 'year' ? '' : `<button style="${todayBtnStyle}" onclick="openReport()">共有</button>`}
   </div>`;
+}
+
+/* ══ 分析レポート（Daily / Weekly / Monthly を1つにまとめて共有する）══ */
+
+const r1 = v => Math.round(v * 10) / 10;
+
+// 横棒グラフ（max を12マスに割り当てる。max を超える値は12マスで頭打ち）
+const WEEKLY_MAX = 30;   // Weekly の目盛りは 0〜30件で固定する
+function bar(v, max, width = 12) {
+  if (!(v > 0)) return '－';
+  return '█'.repeat(Math.min(width, Math.max(1, Math.round(v / max * width))));
+}
+// 達成率の円グラフ（●1つ＝10%。端数は欠けた円で表す）
+function pie(rate) {
+  const r = Math.max(0, Math.min(100, rate));
+  const full = Math.floor(r / 10);
+  const rem = Math.round(r) % 10;
+  const part = rem === 0 ? '' : rem < 4 ? '◔' : rem < 7 ? '◑' : '◕';
+  return ('●'.repeat(full) + part + '○'.repeat(Math.max(0, 10 - full - (part ? 1 : 0)))).slice(0, 10);
+}
+
+// 「今日」がレポート対象の月に含まれるなら、その日までを経過日数とする
+function elapsedDays(y, m, last) {
+  const t = new Date();
+  if (y === t.getFullYear() && m === t.getMonth() + 1) return Math.min(t.getDate(), last);
+  if (y > t.getFullYear() || (y === t.getFullYear() && m > t.getMonth() + 1)) return 0;
+  return last;
+}
+
+// 目標に対する進み具合を一言で表す
+function paceVerdict(actual, expected) {
+  if (expected <= 0) return '';
+  const diff = r1(actual - expected);
+  if (diff > 0) return `想定より ${diff}件 先行`;
+  if (diff < 0) return `想定より ${Math.abs(diff)}件 遅れ`;
+  return '想定どおり';
+}
+
+// 月内の週ごとの合計
+function weekSums(y, m, aid) {
+  const { numWeeks, day1js, last } = monthInfo(y, m);
+  const daily = monthDailyValues(y, m, aid);
+  const out = [];
+  for (let w = 0; w < numWeeks; w++) {
+    let sum = 0;
+    for (let di = 0; di < 7; di++) {
+      const date = 1 - day1js + w * 7 + di;
+      if (date >= 1 && date <= last) sum += daily[date - 1];
+    }
+    out.push(sum);
+  }
+  return out;
+}
+
+// Daily / Weekly / Monthly をまとめた1本のレポート
+function buildReport() {
+  const y = graphYr, m = graphMo;
+  const { last } = monthInfo(y, m);
+  const passed = elapsedDays(y, m, last);
+  const rest = last - passed;
+  const t = new Date();
+  const stamp = `${t.getFullYear()}/${String(t.getMonth()+1).padStart(2,'0')}/${String(t.getDate()).padStart(2,'0')}`;
+
+  const withGoal = ACTIONS.filter(a => getGoal(a.id, y, m) > 0);
+  const achieved = withGoal.filter(a => {
+    const total = monthSumOf(y, m, a.id);
+    return total >= getGoal(a.id, y, m);
+  });
+
+  const blocks = ACTIONS.map(a => {
+    const daily = monthDailyValues(y, m, a.id);
+    const total = daily.reduce((x, z) => x + z, 0);
+    const goal = getGoal(a.id, y, m);
+    const rate = goal > 0 ? Math.round(total / goal * 100) : 0;
+    const L = [];
+
+    L.push(goal > 0
+      ? `■ ${a.name} — 今月 ${r1(total)}/${goal}${a.unit}（${rate}%）・${rate >= 100 ? '達成' : '未達'}`
+      : `■ ${a.name} — 今月 ${r1(total)}${a.unit}（目標未設定）`);
+
+    /* Daily */
+    const recorded = daily.filter(v => v > 0).length;
+    const bestD = daily.indexOf(Math.max(...daily));
+    L.push(goal > 0
+      ? `  [Daily]  ${pie(rate)}  ${rate}%（${m}月の目標達成率）`
+      : `  [Daily]  ${'○'.repeat(10)}  目標未設定`);
+    if (goal > 0) L.push(`           ● 達成 ${r1(Math.min(total, goal))}${a.unit} / ○ 残り ${r1(Math.max(0, goal - total))}${a.unit}`);
+    L.push(`           1日平均 ${passed > 0 ? r1(total / passed) : 0}${a.unit} / 記録 ${recorded}日 / 経過 ${passed}日`
+      + (daily[bestD] > 0 ? ` / 最多 ${m}月${bestD + 1}日（${r1(daily[bestD])}${a.unit}）` : ''));
+    if (goal > 0) {
+      L.push(`           目安 ${paceLabel(goal, last, a.unit)} → ${paceVerdict(total, goal * passed / last)}`);
+      const remain = Math.max(0, goal - total);
+      L.push(`           ${rest > 0
+        ? `残り ${rest}日で ${r1(remain)}${a.unit}` + (remain > 0 ? `（${paceLabel(remain, rest, a.unit)}）` : '（達成済み）')
+        : `月末時点：${remain > 0 ? `${r1(remain)}${a.unit} 未達` : '目標達成'}`}`);
+    }
+
+    /* Weekly */
+    const wk = weekSums(y, m, a.id);
+    const bestW = wk.indexOf(Math.max(...wk));
+    wk.forEach((v, i) => L.push(`  ${i === 0 ? '[Weekly]' : '        '} 第${i + 1}週 ${bar(v, WEEKLY_MAX)} ${r1(v)}`));
+    L.push(`           目盛り 0〜${WEEKLY_MAX}${a.unit}`);
+    L.push(`           週平均 ${r1(total / wk.length)}${a.unit}`
+      + (wk[bestW] > 0 ? ` / 最多 第${bestW + 1}週（${r1(wk[bestW])}${a.unit}）` : '')
+      + (goal > 0 ? ` / 目安 ${paceLabel(goal, wk.length, a.unit, '週間')}` : ''));
+
+    /* Monthly：今月の合計・達成率と、先月との比較 */
+    const pm = m === 1 ? 12 : m - 1;
+    const py = m === 1 ? y - 1 : y;
+    const prev = monthSumOf(py, pm, a.id);
+    const prevGoal = getGoal(a.id, py, pm);
+    L.push(goal > 0
+      ? `  [Monthly] 今月 ${r1(total)}/${goal}${a.unit}・達成率 ${rate}%`
+      : `  [Monthly] 今月 ${r1(total)}${a.unit}（目標未設定）`);
+    const diff = r1(total - prev);
+    L.push(`           先月（${pm}月）${r1(prev)}${a.unit}`
+      + (prevGoal > 0 ? `／${prevGoal}${a.unit}・達成率 ${Math.round(prev / prevGoal * 100)}%` : '')
+      + ` → 今月 ${diff > 0 ? '+' : ''}${diff}${a.unit}`);
+    return L.join('\n');
+  });
+
+  // 名前が未登録ならログインIDで代用する
+  const who = (localStorage.getItem(A_NAME) || '').trim() || localStorage.getItem(A_USER) || '';
+  return `NSE Quest 分析レポート
+${who ? `${who}\n` : ''}${y}年${m}月
+（${stamp} 時点）
+
+── サマリー ──
+月間目標の達成 ${achieved.length}/${withGoal.length}項目（目標設定済みのうち）
+${withGoal.length > achieved.length ? `未達 ${withGoal.filter(a => !achieved.includes(a)).map(a => a.name).join('・')}` : '全項目が目標を達成'}
+経過 ${passed}/${last}日・残り ${rest}日
+
+${blocks.join('\n\n')}`;
+}
+
+function openReport() {
+  document.getElementById('reportText').textContent = buildReport();
+  document.getElementById('reportModal').style.display = '';
+  document.getElementById('reportMsg').textContent = '';
+}
+function closeReport() {
+  document.getElementById('reportModal').style.display = 'none';
+}
+async function shareReport() {
+  const text = document.getElementById('reportText').textContent;
+  if (navigator.share) {
+    try { await navigator.share({ title: 'NSE Quest 分析レポート', text }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }   // 共有シートを閉じただけ
+  }
+  copyReport();   // 共有に対応していない端末（PCブラウザなど）
+}
+async function copyReport() {
+  const text = document.getElementById('reportText').textContent;
+  const msg = document.getElementById('reportMsg');
+  try {
+    await navigator.clipboard.writeText(text);
+    msg.textContent = 'コピーしました';
+  } catch (e) {
+    msg.textContent = '上のテキストを選択してコピーしてください';
+  }
 }
 
 function goGraphToday() {
