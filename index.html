@@ -47,6 +47,20 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
+/* ── 起動中のロゴ表示 ── */
+.boot-splash {
+  position: fixed; inset: 0; z-index: 2000; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity .3s ease;
+}
+.boot-splash::after {
+  content: ''; width: min(56vw, 280px); height: min(56vw, 280px);
+  background: url("login-bg.jpg") center center / contain no-repeat;
+  opacity: .3;
+}
+body.theme-light .boot-splash::after { opacity: .14; }
+.boot-splash.hide { opacity: 0; pointer-events: none; }
+
 /* ── Header ── */
 .app-header {
   background: rgba(0,0,0,.96);
@@ -1025,6 +1039,8 @@ body.theme-light .view-header { background: rgba(244,244,244,.96); }
 </style>
 </head>
 <body>
+<!-- 起動中はロゴだけを薄く出す（判定が終わり次第 hideBootSplash() で消える） -->
+<div class="boot-splash" id="bootSplash"></div>
 
 <!-- ── Login Screen ── -->
 <!-- 起動直後は非表示。ログインが必要なときだけ initAuth() が表示する
@@ -2225,6 +2241,7 @@ function isLoggedIn() {
 }
 
 function startApp() {
+  hideBootSplash();
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appWrapper').style.display  = '';
   document.getElementById('globalMenuBtn').style.display = 'flex';
@@ -2568,7 +2585,17 @@ async function initAuth() {
   }
   document.getElementById('loginScreen').style.display = '';
   showLogin();
+  hideBootSplash();
 }
+
+// 起動中のロゴを消す（通信が詰まっても残らないよう保険もかける）
+function hideBootSplash() {
+  const el = document.getElementById('bootSplash');
+  if (!el || el.classList.contains('hide')) return;
+  el.classList.add('hide');
+  setTimeout(() => el.remove(), 350);
+}
+setTimeout(hideBootSplash, 6000);
 
 // ── Theme ─────────────────────────────────────────
 const A_THEME = 'ura-theme';
