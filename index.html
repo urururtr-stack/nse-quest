@@ -6,8 +6,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NSE Quest</title>
-<link rel="apple-touch-icon" href="icon.png">
-<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<meta name="apple-mobile-web-app-title" content="NSE Quest">
+<meta name="theme-color" content="#000000">
 
 <style>
 :root {
@@ -374,6 +377,15 @@ body.theme-light .cday.today { box-shadow: var(--neon-box); }
 .goal-input:focus { border-color: var(--white); box-shadow: var(--neon-box); }
 .goal-input::placeholder { color: var(--border2); font-size: 11px; }
 .goal-row-sub { font-size: 10px; letter-spacing: 1px; color: var(--muted); margin-top: 7px; }
+/* 記録のリセット（誤操作しにくいよう他のボタンと色を分ける） */
+.reset-wrap { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border); }
+.reset-btn {
+  display: block; width: 100%; background: none; border: 1px solid rgba(224,85,85,.45);
+  color: #e05555; font-size: 11px; letter-spacing: 2px; font-family: inherit;
+  padding: 11px 8px; cursor: pointer; transition: all .15s;
+}
+.reset-btn:active { border-color: #e05555; box-shadow: 0 0 8px rgba(224,85,85,.35); }
+.reset-note { font-size: 9px; letter-spacing: 1px; color: var(--muted); margin-top: 8px; line-height: 1.6; }
 .counter-name {
   flex: 1; min-width: 0; font-size: 13px; color: var(--white);
   letter-spacing: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -1866,7 +1878,27 @@ function renderMonthly() {
     <div class="memo-wrap">
       <div class="memo-label">今月の自分を褒めろ</div>
       <textarea class="memo" id="m-notes" placeholder="自由記入" oninput="autoSave()">${m.notes||''}</textarea>
+    </div>
+    <div class="reset-wrap">
+      <button class="reset-btn" onclick="resetMonthRecords()">${yr}年${mo}月の記録をリセット</button>
+      <div class="reset-note">この月のカウントを全て0に戻します。月間目標・振り返りメモは残ります。</div>
     </div>`;
+}
+
+// 表示中の月のカウントだけを 0 に戻す（目標・メモ・他の月は残す）
+function resetMonthRecords() {
+  const label = `${yr}年${mo}月`;
+  if (!confirm(`${label}の記録を全て0に戻します。\nこの操作は取り消せません。実行しますか？`)) return;
+  collect();
+  data.weeks.forEach(wk => {
+    ACTIONS.forEach(a => { wk[a.id] = Array(7).fill(''); });
+  });
+  counterDay = {};
+  localStorage.setItem(key(), JSON.stringify(data));
+  scheduleCloudSync();
+  renderAll();
+  switchTab(currentTab);
+  showToast(`${label}の記録を0に戻しました`);
 }
 
 // ── Interactions ──────────────────────────────────
