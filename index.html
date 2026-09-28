@@ -2180,6 +2180,8 @@ async function pullFromCloud() {
       Object.entries(obj).forEach(([k, v]) => localStorage.setItem(k, v));
     } catch {}
   }
+  // 取り込んだテーマを画面に反映する（以前は保存値と表示がずれていた）
+  applyTheme(localStorage.getItem(A_THEME) || 'dark', false);
   return true;
 }
 
@@ -2542,9 +2544,10 @@ const A_THEME = 'ura-theme';
 const A_NAME  = 'ura-auth-name';
 const A_EMAIL = 'ura-auth-email';
 
-function applyTheme(name) {
+function applyTheme(name, sync = true) {
   document.body.classList.toggle('theme-light', name === 'light');
   localStorage.setItem(A_THEME, name);
+  if (sync) scheduleCloudSync();   // 選んだテーマを他の端末にも引き継ぐ
   ['light','dark'].forEach(t => {
     document.getElementById(`topt-${t}`)?.classList.toggle('selected', t === name);
   });
@@ -2554,7 +2557,7 @@ function applyTheme(name) {
     renderViewContent(graphViewType);
   }
 }
-function initTheme() { applyTheme(localStorage.getItem(A_THEME) || 'dark'); }
+function initTheme() { applyTheme(localStorage.getItem(A_THEME) || 'dark', false); }
 function openThemeModal()  { document.getElementById('themeModal').style.display = ''; }
 function closeThemeModal() { document.getElementById('themeModal').style.display = 'none'; }
 
