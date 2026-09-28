@@ -692,6 +692,7 @@ body.theme-light .login-bg { opacity: .12; }
   margin-bottom: 10px; font-family: inherit; transition: opacity .15s;
 }
 .login-btn:active { opacity: .8; }
+.login-btn:disabled { opacity: .3; box-shadow: none; cursor: not-allowed; }
 .faceid-btn {
   width: 100%; padding: 13px; background: none; color: var(--white);
   border: 1px solid var(--border2); font-size: 12px; letter-spacing: 2px;
@@ -1026,7 +1027,9 @@ body.theme-light .view-header { background: rgba(244,244,244,.96); }
 <body>
 
 <!-- ── Login Screen ── -->
-<div id="loginScreen" class="login-screen">
+<!-- 起動直後は非表示。ログインが必要なときだけ initAuth() が表示する
+     （表示のままだと、更新のたびに「NSE Quest」のログイン画面が一瞬映るため） -->
+<div id="loginScreen" class="login-screen" style="display:none">
   <div class="login-bg"></div>
   <div class="login-overlay"></div>
 
@@ -1063,29 +1066,30 @@ body.theme-light .view-header { background: rgba(244,244,244,.96); }
     <div id="setupMode" style="display:none">
       <form onsubmit="doSetup();return false;" autocomplete="off">
         <div class="login-field-label">名前</div>
-        <input class="login-input" id="setupName" type="text" autocomplete="name" placeholder="漢字フルネーム">
+        <input class="login-input" id="setupName" type="text" autocomplete="name" placeholder="漢字フルネーム" oninput="updateSetupBtn()">
         <div class="login-field-label">メールアドレス（ログインID）</div>
-        <input class="login-input" id="setupEmail" type="email" autocomplete="email" inputmode="email" placeholder="example@email.com">
+        <input class="login-input" id="setupEmail" type="email" autocomplete="email" inputmode="email" placeholder="example@email.com" oninput="updateSetupBtn()">
         <div class="login-hint">パスワードを忘れたとき、このアドレスに再設定リンクを送ります</div>
         <div class="login-field-label">パスワード</div>
         <div class="pw-wrap">
-          <input class="login-input" id="setupPw" type="password" autocomplete="new-password" placeholder="Password（8文字以上）">
+          <input class="login-input" id="setupPw" type="password" autocomplete="new-password" placeholder="Password（8文字以上）" oninput="updateSetupBtn()">
           <button type="button" class="pw-toggle" onclick="togglePw('setupPw',this)" tabindex="-1">
             <svg id="eye-setupPw" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
         <div class="login-field-label">パスワード（確認）</div>
         <div class="pw-wrap">
-          <input class="login-input" id="setupPw2" type="password" autocomplete="off" placeholder="Confirm Password">
+          <input class="login-input" id="setupPw2" type="password" autocomplete="off" placeholder="Confirm Password" oninput="updateSetupBtn()">
           <button type="button" class="pw-toggle" onclick="togglePw('setupPw2',this)" tabindex="-1">
             <svg id="eye-setupPw2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
         <label class="privacy-row">
-          <input class="stay-check" type="checkbox" id="privacyCheck" onclick="event.stopPropagation()">
+          <input class="stay-check" type="checkbox" id="privacyCheck" onclick="event.stopPropagation()" onchange="updateSetupBtn()">
           <span><button type="button" class="privacy-link" onclick="openPrivacyModal();event.stopPropagation();event.preventDefault()">個人情報保護方針</button>に同意する</span>
         </label>
-        <button class="login-btn" type="submit">アカウント作成</button>
+        <button class="login-btn" type="submit" id="setupBtn" disabled>アカウント作成</button>
+        <div class="login-hint" id="setupHint">名前を入力してください</div>
       </form>
       <div class="login-msg" id="setupMsg"></div>
       <div class="login-sep"></div>
@@ -2253,6 +2257,7 @@ function showMsg(id, msg, type) {
 
 function showSetup() {
   document.getElementById('setupMode').style.display = '';
+  updateSetupBtn();
   document.getElementById('loginMode').style.display = 'none';
   showMsg('setupMsg','','');
 }
@@ -2295,6 +2300,26 @@ function closePrivacyModal(e) {
 }
 
 // ── 新規登録（Firebase Authentication）──
+// 全項目が正しく入力されるまで「アカウント作成」を押せないようにする
+function updateSetupBtn() {
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const pw = document.getElementById('setupPw')?.value || '';
+  const pw2 = document.getElementById('setupPw2')?.value || '';
+  const agreed = document.getElementById('privacyCheck')?.checked;
+  let hint = '';
+  if (!v('setupName'))                      hint = '名前を入力してください';
+  else if (!v('setupEmail'))                hint = 'メールアドレスを入力してください';
+  else if (!isEmail(v('setupEmail').toLowerCase())) hint = 'メールアドレスの形式が正しくありません';
+  else if (pw.length < 8)                   hint = 'パスワードは8文字以上にしてください';
+  else if (!pw2)                            hint = '確認用のパスワードを入力してください';
+  else if (pw !== pw2)                      hint = 'パスワードが一致しません';
+  else if (!agreed)                         hint = '個人情報保護方針に同意してください';
+  const btn = document.getElementById('setupBtn');
+  if (btn) btn.disabled = !!hint;
+  const el = document.getElementById('setupHint');
+  if (el) el.textContent = hint || 'すべて入力できました';
+}
+
 async function doSetup() {
   const email = document.getElementById('setupEmail').value.trim().toLowerCase();
   const id    = email;   // メールアドレスがそのままログインID
@@ -2762,7 +2787,7 @@ function buildDailyView() {
       guideLabel: goal > 0 ? `目安 ${paceLabel(goal, last, a.unit)}` : ''
     };
   });
-  return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Daily`, buildNavHtml(`${gyr}年${gmo}月`));
+  return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Daily`, buildNavHtml(`${gyr}年${gmo}月`), { zeroBase: true });
 }
 
 /* ── Weekly：選択中の月を週別（暦週）で表示 ── */
