@@ -174,18 +174,20 @@ body {
 
 
 /* ── Tabs ── */
+/* 週タブは横スクロールせず、画面幅に収める */
 .tab-nav {
-  display: flex; overflow-x: auto; scrollbar-width: none;
+  display: flex;
   border-bottom: 1px solid var(--border);
   background: rgba(0,0,0,.96); backdrop-filter: blur(24px);
   position: sticky; top: var(--header-h); z-index: 49;
 }
-.tab-nav::-webkit-scrollbar { display: none; }
 .tab-btn {
-  flex-shrink: 0; padding: 14px 18px; font-size: 12px; color: var(--mid);
+  flex: 1 1 auto; min-width: 0; padding: 14px 3px;
+  font-size: clamp(9px, 2.5vw, 12px); color: var(--mid);
   background: none; border: none; border-bottom: 2px solid transparent;
-  cursor: pointer; transition: all 0.15s; white-space: nowrap; letter-spacing: 2px;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap; letter-spacing: 0;
   text-transform: uppercase; min-height: 48px;
+  overflow: hidden; text-overflow: ellipsis;
 }
 .tab-btn.active {
   color: var(--white); border-bottom-color: var(--white);
@@ -865,6 +867,7 @@ body.theme-light .login-video  { display: none; }
   .hgoal-num span { font-size: 12px; }
   .quick-nav  { gap: 8px; }
   .today-btn  { font-size: 11px; letter-spacing: 3px; padding: 8px 4px; }
+  .tab-btn    { font-size: 13px; letter-spacing: 2px; padding: 14px 12px; }
   /* 幅に余裕があるので、週合計は文字を大きめに戻す */
   .delta-label { font-size: 11px; }
   .delta-val   { font-size: 24px; }
