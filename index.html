@@ -412,6 +412,14 @@ body.theme-light .cday.today { box-shadow: var(--neon-box); }
   user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
   transition: transform .1s, box-shadow .15s, border-color .15s;
 }
+.counter-btn:disabled { opacity: .25; cursor: not-allowed; box-shadow: none; }
+/* 月間目標が未設定の月の案内 */
+.counter-wrap.locked .counter-item { opacity: .45; }
+.counter-lock {
+  border: 1px solid rgba(224,85,85,.45); color: #e05555;
+  font-size: 11px; line-height: 1.7; letter-spacing: 1px;
+  padding: 10px 12px; margin-bottom: 12px;
+}
 .counter-btn:active {
   transform: scale(.85);
   border-color: var(--white); box-shadow: var(--neon-box);
@@ -1594,8 +1602,10 @@ function renderWeek(w) {
       : (selectable.length ? selectable[selectable.length - 1] : -1);
   }
   const selDi = counterDay[w];
+  const locked = monthLocked();   // 月間目標が未設定の月はカウンターを使えない
   const counterHtml = selDi < 0 ? '' : `
-    <div class="counter-wrap">
+    <div class="counter-wrap${locked ? ' locked' : ''}">
+      ${locked ? `<div class="counter-lock">${yr}年${mo}月の月間目標が未入力の項目があります。<br>「月間目標・結果」で全ての項目に目標数値を入力すると記録できます。</div>` : ''}
       <div class="counter-title">記録する日　<span id="cdayLabel-${w}" class="counter-day-label">${mo}月${wkStart + selDi}日（${DAYS[selDi]}）</span></div>
       <div class="counter-days">
         ${DAYS.map((d, di) => {
@@ -1618,9 +1628,9 @@ function renderWeek(w) {
         return `<div class="counter-item${st}" id="citem-${a.id}-${w}">
           <div class="counter-row">
             <div class="counter-name">${a.name}</div>
-            <button class="counter-btn" onclick="stepCount('${a.id}',${w},-1,event)">−</button>
+            <button class="counter-btn" onclick="stepCount('${a.id}',${w},-1,event)"${locked ? ' disabled' : ''}>−</button>
             <div class="counter-val" id="cval-${a.id}-${w}">${cur}<span class="counter-unit">${a.unit}</span></div>
-            <button class="counter-btn" onclick="stepCount('${a.id}',${w},1,event)">＋</button>
+            <button class="counter-btn" onclick="stepCount('${a.id}',${w},1,event)"${locked ? ' disabled' : ''}>＋</button>
           </div>
           <div class="counter-goal" id="gbar-${a.id}-${w}">
             <div class="goal-bar"><div class="goal-bar-fill${st}" style="width:${Math.min(rate,100)}%"></div></div>
@@ -1695,11 +1705,23 @@ function refreshCounter(w) {
 
 // 月次ページで、この月の目標を保存する
 function saveMonthGoal(aid, val) {
+  const wasLocked = monthLocked();
   setGoal(aid, val);
   renderMonthly();
   updateProgress();
   const { numWeeks } = monthInfo(yr, mo);
+  // 全項目そろってカウンターが使えるようになったら週ページを作り直す
+  if (wasLocked && !monthLocked()) { for (let w = 0; w < numWeeks; w++) renderWeek(w); }
   for (let w = 0; w < numWeeks; w++) refreshGoalBars(w);
+}
+
+/* 表示中の月に目標が1件も設定されていなければカウンターを使えなくする。
+   過去の記録を編集できなくならないよう、対象は今月以降だけにする。 */
+function monthLocked(y = yr, m = mo) {
+  const t = new Date();
+  const isPast = y < t.getFullYear() || (y === t.getFullYear() && m < t.getMonth() + 1);
+  if (isPast) return false;
+  return !ACTIONS.every(a => getGoal(a.id, y, m) > 0);   // 1項目でも未入力なら使えない
 }
 
 // 月間目標に対する状態（達成＝青 / 未達＝赤 / 目標未設定＝通常色）
@@ -1731,6 +1753,7 @@ function refreshGoalBars(w) {
 }
 
 function stepCount(aid, w, delta, ev) {
+  if (monthLocked()) return;   // 目標未設定の月は記録させない
   const di = counterDay[w];
   if (di === undefined || di < 0) return;
   const inp = document.getElementById(`${aid}-${w}-${di}`);
@@ -1902,8 +1925,8 @@ function renderMonthly() {
 
   document.getElementById('pane-monthly').innerHTML = `
     <div class="section-label" style="margin-bottom:4px;">${yr}年${mo}月の目標と進捗</div>
-    <div style="font-size:10px;color:var(--muted);letter-spacing:1px;line-height:1.6;margin-bottom:12px">
-      各項目の枠に数字を入れるとこの月の目標になります。上部の ‹ › で月を切り替えると、その月の目標を設定できます。
+    <div style="font-size:10px;color:#e05555;letter-spacing:1px;line-height:1.6;margin-bottom:12px">
+      各項目の全ての枠に目標数値を入力しないと使用できません。
     </div>
     ${totalsHtml}
     <div class="sep" style="margin:20px 0"></div>
@@ -1944,6 +1967,9 @@ function resetMonthRecords() {
 
 // ── Interactions ──────────────────────────────────
 function switchTab(idx) {
+  // 目標が未設定の月では、まず「月間目標・結果」を開かせる
+  const { numWeeks: nw } = monthInfo(yr, mo);
+  if (idx !== nw && monthLocked()) idx = nw;
   currentTab = idx;
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
   document.querySelectorAll('.pane').forEach((p,i) => p.classList.toggle('active', i===idx));
