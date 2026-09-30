@@ -116,6 +116,36 @@ body.theme-light .boot-splash::after { opacity: .14; }
 .today-btn:active { border-color: var(--white); color: var(--white); box-shadow: var(--neon-box); }
 .today-btn.current { border-color: var(--white); color: var(--white); text-shadow: var(--neon); }
 
+/* ── ログイン日数の指標（その月の日数が最大） ── */
+.login-meter { margin: 6px 0 2px; }
+.login-meter-bar { height: 3px; background: var(--border); overflow: hidden; }
+.login-meter-fill {
+  height: 100%; width: 0; position: relative; overflow: hidden;
+  background: rgba(255,255,255,.5);
+  transition: width .9s cubic-bezier(.22,1,.36,1);
+}
+/* 左から右へ光が流れ続ける */
+.login-meter-fill::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, #fff 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: meterFlow 2.4s linear infinite;
+}
+@keyframes meterFlow {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+body.theme-light .login-meter-fill { background: rgba(0,0,0,.35); }
+body.theme-light .login-meter-fill::after {
+  background: linear-gradient(90deg, transparent 0%, #111 50%, transparent 100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-meter-fill::after { animation: none; opacity: .6; transform: none; }
+}
+.login-meter-txt {
+  font-size: 9px; letter-spacing: 1px; color: var(--white); margin-top: 4px; text-align: right;
+}
+
 /* ── ヘッダーの月間目標サマリー ── */
 /* 9項目を横スクロールなしで並べるため、文字サイズを画面幅に追従させる */
 .hgoals {
@@ -1168,6 +1198,10 @@ body.theme-light .view-header { background: rgba(244,244,244,.96); }
     <div class="month-label" id="monthLabel" onclick="togglePicker()"></div>
     <button class="nav-btn" onclick="changeMonth(1)">›</button>
   </div>
+  <div class="login-meter" id="loginMeter">
+    <div class="login-meter-bar"><div class="login-meter-fill" id="loginMeterFill"></div></div>
+    <div class="login-meter-txt" id="loginMeterTxt"></div>
+  </div>
   <div id="monthPicker" class="month-picker">
     <div class="picker-year-row">
       <button class="picker-yr-btn" onclick="shiftYear(-1)">‹</button>
@@ -1724,6 +1758,47 @@ function monthLocked(y = yr, m = mo) {
   return !ACTIONS.every(a => getGoal(a.id, y, m) > 0);   // 1項目でも未入力なら使えない
 }
 
+/* ── ログインした日の記録 ──
+   同じ日に何度開いても1回として数え、その月の日数を上限に表示する */
+function loginsKey() { return `ura-${localStorage.getItem(A_USER) || 'default'}-logins`; }
+function loadLogins() { try { return JSON.parse(localStorage.getItem(loginsKey())) || {}; } catch (e) { return {}; } }
+
+function recordLogin() {
+  const t = new Date();
+  const mk = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`;
+  const all = loadLogins();
+  const days = all[mk] || [];
+  if (!days.includes(t.getDate())) {
+    days.push(t.getDate());
+    all[mk] = days.sort((a, b) => a - b);
+    localStorage.setItem(loginsKey(), JSON.stringify(all));
+    scheduleCloudSync();
+  }
+}
+
+function loginDaysOf(y, m) {
+  const days = loadLogins()[`${y}-${String(m).padStart(2, '0')}`];
+  return Array.isArray(days) ? days.length : 0;
+}
+
+// 表示中の月のログイン日数を指標に反映する
+let _loginMeterAt = null;   // 直前に描いた値。変わったときだけアニメーションさせる
+function updateLoginMeter() {
+  const fill = document.getElementById('loginMeterFill');
+  const txt  = document.getElementById('loginMeterTxt');
+  if (!fill || !txt) return;
+  const { last } = monthInfo(yr, mo);
+  const n = loginDaysOf(yr, mo);
+  const pct = Math.min(100, Math.round(n / last * 100));
+  txt.textContent = `ログイン ${n} / ${last}日`;
+  const at = `${yr}-${mo}-${pct}`;
+  if (_loginMeterAt === at) return;
+  _loginMeterAt = at;
+  // いったん0に戻してから伸ばす（レイアウト確定後に変えないと動かない）
+  fill.style.width = '0%';
+  requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = `${pct}%`; }));
+}
+
 // 月間目標に対する状態（達成＝青 / 未達＝赤 / 目標未設定＝通常色）
 function goalState(goal, rate) {
   if (!(goal > 0)) return '';
@@ -2067,6 +2142,7 @@ function renderHeaderGoals() {
 // ヘッダーの月間目標表示を更新する
 function updateProgress() {
   renderHeaderGoals();
+  updateLoginMeter();
 }
 
 // ブランド名の横にアカウント名を出す（名前が未登録ならログインIDで代用）
@@ -2268,6 +2344,7 @@ function isLoggedIn() {
 
 function startApp() {
   hideBootSplash();
+  recordLogin();
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appWrapper').style.display  = '';
   document.getElementById('globalMenuBtn').style.display = 'flex';
