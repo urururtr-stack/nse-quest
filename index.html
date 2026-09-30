@@ -2843,7 +2843,7 @@ function buildWeeklyView() {
       guideLabel: goal > 0 ? `目安 ${paceLabel(goal, numWeeks, a.unit, '週間')}` : ''
     };
   });
-  return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Weekly`, buildNavHtml(`${gyr}年${gmo}月`), { zeroBase: true });
+  return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Weekly`, buildNavHtml(`${gyr}年${gmo}月`), { zeroBase: true, plainBars: true });
 }
 
 /* ── Monthly：選択中の年を月別に表示 ── */
@@ -2874,13 +2874,14 @@ function buildMonthlyView() {
 function buildItemCharts(items, labels, subtitle, navHtml = '', opts = {}) {
   const zeroBase = !!opts.zeroBase;   // true なら 0（グラフ下端）を基準線にする
   const hideGoal = !!opts.hideGoal;   // true なら目標数値・進捗バーを表示しない
+  const plainBars = hideGoal || !!opts.plainBars;   // true なら棒を一色で描く
   const n = labels.length;
   const isLight = document.body.classList.contains('theme-light');
   const barC = isLight ? 'rgba(0,0,0,.72)'  : 'rgba(255,255,255,.72)';
   const barD = isLight ? 'rgba(0,0,0,.95)'  : '#ffffff';
   const txt  = isLight ? 'rgba(0,0,0,.85)'  : 'rgba(255,255,255,.85)';
   const xc   = isLight ? 'rgba(0,0,0,.35)'  : 'rgba(255,255,255,.35)';
-  const gc   = isLight ? 'rgba(0,0,0,.13)'  : 'rgba(255,255,255,.13)';
+  const gcU  = isLight ? 'rgba(0,0,0,.26)'  : 'rgba(255,255,255,.26)';   // 目盛り線
   const goalC= isLight ? 'rgba(0,0,0,.45)'  : 'rgba(255,255,255,.45)';
 
   if (!items.length) {
@@ -2895,46 +2896,54 @@ function buildItemCharts(items, labels, subtitle, navHtml = '', opts = {}) {
   const safe = getSafeInsets();
   const land = window.innerWidth > window.innerHeight;
   const availW = Math.max(280, (window.innerWidth || 375) - 40 - (land ? safe.left + safe.right : 0));
-  const slotW = availW / n;          // 常に画面幅を n 等分して横スクロールをなくす
   const W = availW;
   const dense = n > 24;              // Daily（30〜31日）のように目盛りが細かいとき
+  const padL = 20;                   // 左端に目盛りの数字を置く余白
+  const slotW = (W - padL) / n;      // 残りを n 等分して横スクロールをなくす
 
   const GH = 96, padT = 16, padB = 2, xLH = 16;
   const H = padT + GH + padB + xLH;
   const barW = Math.max(3, Math.min(slotW * 0.6, 26));
-  const xOf = i => slotW * i + slotW / 2;
+  const xOf = i => padL + slotW * i + slotW / 2;
 
   const panels = items.map((it, idx) => {
     const a = it.action;
     const maxV = Math.max(...it.values, it.guide, ...(it.perBarGoals || [0]), 1);
-    const yOf = v => padT + (GH - padT - padB) * (1 - v / maxV) + padB;
+    // 5件ごとの目盛りが必ず1本以上入るよう、縦軸の上限を目盛り幅で切り上げる
+    const gStep = 5 * Math.max(1, Math.ceil(maxV / 40));
+    const axisMax = Math.max(gStep, Math.ceil(maxV / gStep) * gStep);
+    const yOf = v => padT + (GH - padT - padB) * (1 - v / axisMax) + padB;
     const baseY = padT + (GH - padB);
     const rate = it.goal > 0 ? Math.round(it.total / it.goal * 100) : 0;
     const done = it.goal > 0 && rate >= 100;
 
-    // 基準線：Daily は目安ライン、Weekly / Monthly は 0（グラフ下端）
-    const zeroY = (!zeroBase && it.guide > 0) ? yOf(it.guide) : baseY;
+    // 基準線は常に 0（グラフ下端）。棒もアニメーションもここから始まる
+    const zeroY = baseY;
 
     let svg = `<svg width="${W}" height="${H}" style="display:block;min-width:${W}px">`;
-    // 目盛り線
-    [0.25, 0.5, 0.75, 1].forEach(t => {
-      const y = (padT + (GH - padT - padB) * (1 - t) + padB).toFixed(1);
-      svg += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="${gc}" stroke-width="0.7"/>`;
-    });
+    // 目盛り線：5件ごとに必ず引き、左端に件数を添える（件数が多い月は5の倍数で間引く）
+    for (let g = gStep; g <= axisMax; g += gStep) {
+      const y = yOf(g);
+      svg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="${gcU}" stroke-width="0.7"/>`;
+      svg += `<text x="${padL - 4}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="8" fill="${xc}" font-family="-apple-system,sans-serif">${g}</text>`;
+    }
+    svg += `<text x="${padL - 4}" y="${(zeroY + 3).toFixed(1)}" text-anchor="end" font-size="8" fill="${xc}" font-family="-apple-system,sans-serif">0</text>`;
     // 棒（基準線から上下に伸びる）
     it.values.forEach((v, i) => {
       const x = (xOf(i) - barW / 2).toFixed(1);
       const delay = (i / Math.max(n, 1) * 0.5).toFixed(2);
-      const barBase = (!zeroBase && it.perBarGoals && it.perBarGoals[i] > 0) ? yOf(it.perBarGoals[i]) : zeroY;
+      const barBase = zeroY;   // 0 から伸びる
       const vy = yOf(v);
       const up = vy <= barBase;
       const top = Math.min(vy, barBase);
       const h = Math.abs(barBase - vy);
       const target = it.perBarGoals ? it.perBarGoals[i] : it.guide;
-      // Monthly（hideGoal）は目標と無関係に全ての棒を同じホワイト／ブラックで描く
-      const hit = hideGoal || (target > 0 && v >= target);
+      // Weekly / Monthly は目標と無関係に全ての棒を同じホワイト／ブラックで描く
+      const hit = plainBars || (target > 0 && v >= target);
       if (v > 0 && h > 0.5) {
-        svg += `<rect x="${x}" y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${hit ? barD : barC}" opacity="${hit ? 1 : .5}">
+        // 要素そのものは高さ0（0の線の位置）で置く。こうしないと、
+        // アニメーション開始までの間だけ完成後の棒が表示されてしまう
+        svg += `<rect x="${x}" y="${barBase.toFixed(1)}" width="${barW.toFixed(1)}" height="0" fill="${hit ? barD : barC}" opacity="${hit ? 1 : .5}">
           <animate attributeName="height" from="0" to="${h.toFixed(1)}" dur="0.45s" begin="${delay}s" fill="freeze" calcMode="spline" keySplines="0.3 1 0.4 1"/>
           <animate attributeName="y" from="${barBase.toFixed(1)}" to="${top.toFixed(1)}" dur="0.45s" begin="${delay}s" fill="freeze" calcMode="spline" keySplines="0.3 1 0.4 1"/>
         </rect>`;
@@ -2944,10 +2953,8 @@ function buildItemCharts(items, labels, subtitle, navHtml = '', opts = {}) {
         svg += `<text x="${xOf(i).toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle" font-size="${dense ? 7 : 9}" fill="${txt}" font-family="-apple-system,sans-serif" opacity="0">${Math.round(v*10)/10}<animate attributeName="opacity" from="0" to="1" dur="0.2s" begin="${(parseFloat(delay)+0.3).toFixed(2)}s" fill="freeze"/></text>`;
       }
     });
-    // 点線：Daily は目安ライン、Weekly / Monthly は 0 のライン（いずれも棒の基準線）
-    if (zeroBase || it.guide > 0) {
-      svg += `<line x1="0" y1="${zeroY.toFixed(1)}" x2="${W}" y2="${zeroY.toFixed(1)}" stroke="${goalC}" stroke-width="1" stroke-dasharray="5,3"/>`;
-    }
+    // 0 の線（棒の基準線）。点線ではなく直線で引く
+    svg += `<line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${W}" y2="${zeroY.toFixed(1)}" stroke="${goalC}" stroke-width="1"/>`;
     // X軸ラベル（Dailyは全ての日付を表示）
     labels.forEach((lbl, i) => {
       svg += `<text x="${xOf(i).toFixed(1)}" y="${H - 3}" text-anchor="middle" font-size="${dense ? 7 : (n > 16 ? 8 : 10)}" fill="${xc}" font-family="-apple-system,sans-serif">${lbl}</text>`;
