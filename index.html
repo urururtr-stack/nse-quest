@@ -3026,7 +3026,7 @@ function buildNavHtml(label, mode = 'month') {
     <button style="${btnStyle}" onclick="navigateGraph(1)">▶</button>
   </div>
   <div style="display:flex;justify-content:center;gap:8px;padding:0 20px">
-    <button style="${todayBtnStyle}" onclick="goGraphToday()">TODAY</button>
+    <button style="${todayBtnStyle}" onclick="goGraphToday()">${mode === 'year' ? '今年' : '今月'}</button>
     <button style="${todayBtnStyle}" onclick="openReport()">共有</button>
   </div>`;
 }
