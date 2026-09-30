@@ -3001,7 +3001,7 @@ function buildNavHtml(label, mode = 'month') {
   </div>
   <div style="display:flex;justify-content:center;gap:8px;padding:0 20px">
     <button style="${todayBtnStyle}" onclick="goGraphToday()">TODAY</button>
-    ${mode === 'year' ? '' : `<button style="${todayBtnStyle}" onclick="openReport()">共有</button>`}
+    <button style="${todayBtnStyle}" onclick="openReport()">共有</button>
   </div>`;
 }
 
@@ -3072,6 +3072,7 @@ function buildReport() {
     return total >= getGoal(a.id, y, m);
   });
 
+  const stats = [];   // 末尾の振り返り用に各項目の集計を控える
   const blocks = ACTIONS.map(a => {
     const daily = monthDailyValues(y, m, a.id);
     const total = daily.reduce((x, z) => x + z, 0);
@@ -3084,13 +3085,12 @@ function buildReport() {
       : `■ ${a.name} — 今月 ${r1(total)}${a.unit}（目標未設定）`);
 
     /* Daily */
-    const recorded = daily.filter(v => v > 0).length;
     const bestD = daily.indexOf(Math.max(...daily));
     L.push(goal > 0
       ? `  [Daily]  ${pie(rate)}  ${rate}%（${m}月の目標達成率）`
       : `  [Daily]  ${'○'.repeat(10)}  目標未設定`);
     if (goal > 0) L.push(`           ● 達成 ${r1(Math.min(total, goal))}${a.unit} / ○ 残り ${r1(Math.max(0, goal - total))}${a.unit}`);
-    L.push(`           1日平均 ${passed > 0 ? r1(total / passed) : 0}${a.unit} / 記録 ${recorded}日 / 経過 ${passed}日`
+    L.push(`           1日平均 ${passed > 0 ? r1(total / passed) : 0}${a.unit} / 経過 ${passed}日`
       + (daily[bestD] > 0 ? ` / 最多 ${m}月${bestD + 1}日（${r1(daily[bestD])}${a.unit}）` : ''));
     if (goal > 0) {
       L.push(`           目安 ${paceLabel(goal, last, a.unit)} → ${paceVerdict(total, goal * passed / last)}`);
@@ -3121,8 +3121,63 @@ function buildReport() {
     L.push(`           先月（${pm}月）${r1(prev)}${a.unit}`
       + (prevGoal > 0 ? `／${prevGoal}${a.unit}・達成率 ${Math.round(prev / prevGoal * 100)}%` : '')
       + ` → 今月 ${diff > 0 ? '+' : ''}${diff}${a.unit}`);
+    stats.push({ a, daily, total, goal, rate, prev, diff });
     return L.join('\n');
   });
+
+  /* ── 振り返り（実績から書き出し、記入済みのメモがあれば併記する）── */
+  // 振り返りメモは対象月のものを読む
+  const md = (y === yr && m === mo) ? (data.monthly || {}) : (getStoredMonth(y, m)?.monthly || {});
+  const memo = k => (md[k] || '').trim();
+  const nm = s => `${s.a.name}`;
+
+  const missList = stats.filter(s => s.goal > 0 && s.rate < 100).sort((x, z) => x.rate - z.rate);
+  const doneList = stats.filter(s => s.goal > 0 && s.rate >= 100).sort((x, z) => z.rate - x.rate);
+  const upList   = stats.filter(s => s.diff > 0).sort((x, z) => z.diff - x.diff);
+  const downList = stats.filter(s => s.diff < 0).sort((x, z) => x.diff - z.diff);
+  const zeroList = stats.filter(s => s.total === 0);
+
+  // 1行1件の箇条書きにする。件数が多いときは上位3件＋「ほかN件」にまとめる
+  const TOP = 3;
+  const bullets = (list, fn) => list.slice(0, TOP).map(x => `・${fn(x)}`)
+    .concat(list.length > TOP ? [`・ほか ${list.length - TOP}項目`] : []);
+
+  const sec1 = [
+    ...bullets(missList, s => `${nm(s)} ${r1(s.goal - s.total)}${s.a.unit}不足（${s.rate}%）`),
+    ...bullets(downList, s => `${nm(s)} 先月比 ${s.diff}${s.a.unit}`),
+  ];
+  if (zeroList.length) sec1.push(`・記録ゼロ ${zeroList.length}項目（${zeroList.slice(0, TOP).map(nm).join('・')}${zeroList.length > TOP ? ' ほか' : ''}）`);
+  if (!sec1.length)    sec1.push('・特になし');
+
+  const sec2 = [
+    ...bullets(doneList, s => `${nm(s)} 目標達成（${s.rate}%）`),
+    ...bullets(upList,   s => `${nm(s)} 先月比 +${s.diff}${s.a.unit}`),
+  ];
+  if (memo('good'))  sec2.push(`・${memo('good')}（記入）`);
+  if (memo('notes')) sec2.push(`・${memo('notes')}（記入）`);
+  if (!sec2.length)  sec2.push('・記録なし');
+
+  const sec3 = [];
+  if (missList.length) {
+    const w = missList[0];
+    const need = Math.max(1, Math.round(w.goal - w.total));
+    sec3.push(rest > 0
+      ? `・${nm(w)} 残り${rest}日で${r1(w.goal - w.total)}${w.a.unit}（${paceLabel(need, rest, w.a.unit)}）`
+      : `・${nm(w)} 来月は前倒しでペースを作る`);
+  }
+  if (zeroList.length) sec3.push(`・${zeroList.slice(0, TOP).map(nm).join('・')}${zeroList.length > TOP ? ' ほか' : ''} は最初の1件から`);
+  if (memo('improve')) sec3.push(`・${memo('improve')}（記入）`);
+  if (!sec3.length)    sec3.push('・現状のペースを維持');
+
+  const review = `
+── ① 今月の反省点 ──
+${sec1.join('\n')}
+
+── ② 良かった点 ──
+${sec2.join('\n')}
+
+── ③ 改善点 ──
+${sec3.join('\n')}`;
 
   // 名前が未登録ならログインIDで代用する
   const who = (localStorage.getItem(A_NAME) || '').trim() || localStorage.getItem(A_USER) || '';
@@ -3135,7 +3190,8 @@ ${who ? `${who}\n` : ''}${y}年${m}月
 ${withGoal.length > achieved.length ? `未達 ${withGoal.filter(a => !achieved.includes(a)).map(a => a.name).join('・')}` : '全項目が目標を達成'}
 経過 ${passed}/${last}日・残り ${rest}日
 
-${blocks.join('\n\n')}`;
+${blocks.join('\n\n')}
+${review}`;
 }
 
 function openReport() {
