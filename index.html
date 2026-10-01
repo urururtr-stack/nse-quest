@@ -1863,6 +1863,7 @@ function setCounterDay(w, di) {
   if (counterDay[w] === di) return;
   counterDay[w] = di;
   refreshCounter(w);
+  updateTodayBtn();
 }
 
 // カウンター表示だけを更新する（ペイン全体を再描画しないので入力中でも安全）
@@ -2264,6 +2265,7 @@ function switchTab(idx) {
   document.querySelectorAll('.pane').forEach((p,i) => p.classList.toggle('active', i===idx));
   const { numWeeks } = monthInfo(yr, mo);
   if (idx === numWeeks) { collect(); renderMonthly(); }
+  updateTodayBtn();
 }
 
 function changeMonth(dir) {
@@ -2320,9 +2322,16 @@ function goToday() {
 }
 
 function updateTodayBtn() {
+  const btn = document.getElementById('todayBtn');
+  if (!btn) return;
   const t = new Date();
-  const isCurrent = yr === t.getFullYear() && mo === t.getMonth() + 1;
-  document.getElementById('todayBtn').classList.toggle('current', isCurrent);
+  let onToday = false;
+  if (yr === t.getFullYear() && mo === t.getMonth() + 1) {
+    const { day1js } = monthInfo(yr, mo);
+    const off = t.getDate() - 1 + day1js;          // 今日が何週目の何曜日か
+    onToday = currentTab === Math.floor(off / 7) && counterDay[Math.floor(off / 7)] === off % 7;
+  }
+  btn.classList.toggle('current', onToday);        // 今日を開いている時だけ光らせる
 }
 
 function applyYrMo(y, m) {
