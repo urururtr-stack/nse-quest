@@ -1885,8 +1885,11 @@ function refreshCounter(w) {
 // 月次ページで、この月の目標を保存する
 function saveMonthGoal(aid, val) {
   const wasLocked = monthLocked();
+  const sy = window.scrollY;        // 再描画で表示位置が飛ばないよう控える
   setGoal(aid, val);
-  renderMonthly();
+  // ロックの表示が変わるときだけ画面を作り直し、それ以外はその行だけ更新する
+  if (monthLocked() !== wasLocked) renderMonthly();
+  else refreshGoalRow(aid);
   updateProgress();
   const { numWeeks } = monthInfo(yr, mo);
   // 全項目そろってカウンターが使えるようになったら週ページを作り直し、解除演出を出す
@@ -1895,6 +1898,8 @@ function saveMonthGoal(aid, val) {
     playUnlockFx();
   }
   for (let w = 0; w < numWeeks; w++) refreshGoalBars(w);
+  // 高さが変わっても元の位置に留まるようにする
+  requestAnimationFrame(() => window.scrollTo(0, sy));
 }
 
 /* 表示中の月に目標が1件も設定されていなければカウンターを使えなくする。
@@ -1913,12 +1918,15 @@ function reviewDone(y, m) {
   return ['good', 'improve', 'notes'].every(k => (mm[k] || '').trim() !== '');
 }
 
-/* 今月の振り返りが未完了のうちは、翌月以降の目標を入力させない */
+/* 前月の振り返りが未完了のうちは、その月の目標を入力させない（今月・過去は対象外） */
+function prevMonthOf(y, m) { return m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 }; }
 function goalInputLocked(y = yr, m = mo) {
   const t = new Date();
   const cy = t.getFullYear(), cm = t.getMonth() + 1;
   const isFutureMonth = y > cy || (y === cy && m > cm);
-  return isFutureMonth && !reviewDone(cy, cm);
+  if (!isFutureMonth) return false;
+  const p = prevMonthOf(y, m);
+  return !reviewDone(p.y, p.m);
 }
 
 /* ── ログインした日の記録 ──
@@ -2151,37 +2159,45 @@ function getMonthTotal(key) {
   return total;
 }
 
+// 項目ごとの「目標・実績・進捗」行（目標はこの月だけの値として編集できる）
+function goalRowHtml(a) {
+  const total = getMonthTotal(a.id);
+  const goal  = getGoal(a.id);
+  const rate  = goal > 0 ? Math.round(total / goal * 100) : 0;
+  const rest  = goal > 0 ? Math.max(0, goal - total) : 0;
+  const st = goalState(goal, rate);
+  const goalLock = goalInputLocked();
+  return `<div class="goal-row${st}" id="grow-${a.id}">
+    <div class="goal-row-top">
+      <div class="goal-row-name">${a.name}</div>
+      <div class="goal-row-num">
+        <strong${st ? ` class="${st.trim()}"` : ''}>${Math.round(total*10)/10}</strong>
+        <span>/</span>
+        <input class="goal-input" type="number" inputmode="numeric" min="0" placeholder="目標"
+          value="${goal > 0 ? goal : ''}" onchange="saveMonthGoal('${a.id}',this.value)"${goalLock ? ' disabled' : ''}>
+        <span class="goal-row-unit">${a.unit}</span>
+      </div>
+    </div>
+    <div class="goal-bar"><div class="goal-bar-fill${st}" style="width:${Math.min(rate,100)}%"></div></div>
+    <div class="goal-row-sub">${goal > 0 ? `達成率 ${rate}%　${rate >= 100 ? '目標達成' : `あと ${Math.round(rest*10)/10}${a.unit}`}` : '目標を入力すると進捗が表示されます'}</div>
+  </div>`;
+}
+
+// 1行だけ描き直す（画面全体を作り直さないので表示位置が動かない）
+function refreshGoalRow(aid) {
+  const el = document.getElementById(`grow-${aid}`);
+  const a = actionById(aid);
+  if (el && a) el.outerHTML = goalRowHtml(a);
+}
+
 function renderMonthly() {
   const m = data.monthly;
-  const _t = new Date(), cyr = _t.getFullYear(), cmo = _t.getMonth() + 1;
+  const _p = prevMonthOf(yr, mo);       // 振り返りを求める対象＝表示中の月の前月
   const goalLock = goalInputLocked();   // 今月の振り返りが未完了なら翌月以降は入力不可
   const needGoals = monthLocked();      // 目標が未入力の枠があり、その月がまだ使えない状態か
 
-  // 項目ごとの「目標・実績・進捗」行（目標はこの月だけの値として編集できる）
-  function goalRow(a) {
-    const total = getMonthTotal(a.id);
-    const goal  = getGoal(a.id);
-    const rate  = goal > 0 ? Math.round(total / goal * 100) : 0;
-    const rest  = goal > 0 ? Math.max(0, goal - total) : 0;
-    const st = goalState(goal, rate);
-    return `<div class="goal-row${st}">
-      <div class="goal-row-top">
-        <div class="goal-row-name">${a.name}</div>
-        <div class="goal-row-num">
-          <strong${st ? ` class="${st.trim()}"` : ''}>${Math.round(total*10)/10}</strong>
-          <span>/</span>
-          <input class="goal-input" type="number" inputmode="numeric" min="0" placeholder="目標"
-            value="${goal > 0 ? goal : ''}" onchange="saveMonthGoal('${a.id}',this.value)"${goalLock ? ' disabled' : ''}>
-          <span class="goal-row-unit">${a.unit}</span>
-        </div>
-      </div>
-      <div class="goal-bar"><div class="goal-bar-fill${st}" style="width:${Math.min(rate,100)}%"></div></div>
-      <div class="goal-row-sub">${goal > 0 ? `達成率 ${rate}%　${rate >= 100 ? '目標達成' : `あと ${Math.round(rest*10)/10}${a.unit}`}` : '目標を入力すると進捗が表示されます'}</div>
-    </div>`;
-  }
-
   const totalsHtml = ACTIONS.length
-    ? ACTIONS.map(goalRow).join('')
+    ? ACTIONS.map(goalRowHtml).join('')
     : `<div style="color:var(--muted);font-size:12px;letter-spacing:1px;margin-bottom:16px">行動項目が設定されていません</div>`;
 
   document.getElementById('pane-monthly').innerHTML = `
@@ -2196,8 +2212,8 @@ function renderMonthly() {
         <span>ロック中</span>
       </div>
       <div class="lock-cond-title">［解除条件］</div>
-      ${goalLock ? `<div class="lock-cond">①${cyr}年${cmo}月の振り返りを全て入力しないと、翌月以降の目標数値は入力できません。</div>` : ''}
-      ${needGoals ? `<div class="lock-cond">②各項目の全ての枠に目標数値を入力しないと使用できません。</div>` : ''}
+      ${goalLock ? `<div class="lock-cond">①${_p.y}年${_p.m}月の【月間目標・結果】にある『振り返り』を全て入力しないと、${mo}月の目標数値は入力できません。</div>` : ''}
+      ${needGoals ? `<div class="lock-cond">②下記項目の目標数値を全て入力しないと使用できません。</div>` : ''}
     </div>` : ''}
     ${totalsHtml}
     <div class="sep" style="margin:20px 0"></div>
@@ -3330,6 +3346,13 @@ function buildNavHtml(label, mode = 'month') {
   </div>
   <div style="display:flex;justify-content:center;gap:8px;padding:0 20px">
     <button style="${todayBtnStyle}" onclick="goGraphToday()">${mode === 'year' ? '今年' : '今月'}</button>
+    <button style="${todayBtnStyle};padding:0 12px;display:inline-flex;align-items:center;justify-content:center"
+      onclick="closeViewPage()" aria-label="ホームに戻る" title="ホームに戻る">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 10.5 12 3.5l9 7"/><path d="M5.5 9.8V20h13V9.8"/><path d="M9.8 20v-5.4h4.4V20"/>
+      </svg>
+    </button>
     <button style="${todayBtnStyle}" onclick="openReport()">共有</button>
   </div>`;
 }
