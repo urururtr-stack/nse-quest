@@ -2240,18 +2240,21 @@ function renderMonthly() {
       <div class="memo-label">今月「良かった」行動</div>
       <textarea class="memo" id="m-good" name="memo-good" placeholder="例：朝イチでSTを3件こなす習慣ができた"
         autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"
+        readonly onfocus="this.removeAttribute('readonly')"
         oninput="autoSave()">${m.good||''}</textarea>
     </div>
     <div class="memo-wrap">
       <div class="memo-label">来月「改善する」と決めた行動</div>
       <textarea class="memo" id="m-improve" name="memo-improve" placeholder="例：CTを週◯件まで増やす"
         autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"
+        readonly onfocus="this.removeAttribute('readonly')"
         oninput="autoSave()">${m.improve||''}</textarea>
     </div>
     <div class="memo-wrap">
       <div class="memo-label">今月の自分を褒めろ</div>
       <textarea class="memo" id="m-notes" name="memo-notes" placeholder="自由記入"
         autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"
+        readonly onfocus="this.removeAttribute('readonly')"
         oninput="autoSave()">${m.notes||''}</textarea>
     </div>
     <div class="reset-wrap">
@@ -3674,28 +3677,11 @@ function closeAccountModal() {
   document.getElementById('acctModal').style.display = 'none';
 }
 
-// ── iOS keyboard scroll fix ──────────────────────
-let _lastScrollY = 0;
-let _kbOpen = false;
-
-// キーボードが閉じている間、常に最新スクロール位置を記録
-window.addEventListener('scroll', () => {
-  if (!_kbOpen) _lastScrollY = window.scrollY;
-}, { passive: true });
-
-document.addEventListener('focusin', e => {
-  if (e.target.tagName === 'INPUT') _kbOpen = true;
-});
-
-document.addEventListener('focusout', e => {
-  if (e.target.tagName === 'INPUT') {
-    _kbOpen = false;
-    // 続けて別の入力欄に移った場合は戻さない（0msだと移動前に実行され画面が飛ぶ）
-    setTimeout(() => {
-      if (!_kbOpen) window.scrollTo({ top: _lastScrollY, behavior: 'instant' });
-    }, 150);
-  }
-});
+/* ── キーボードを閉じたときの処理 ──
+   以前はスクロール位置を記録して閉じた後に戻していたが、
+   「完了」を押すたびに画面が動いてしまうため、こちらからは位置を変えない。
+   記録セルは手入力できない（カウンターのみ）ので、
+   ページ内でキーボードが出るのは月間目標の入力欄だけ。 */
 
 // ── 画面回転・リサイズ対応 ──────────────────────────
 let _resizeTimer = null;
