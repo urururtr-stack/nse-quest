@@ -2542,15 +2542,35 @@ async function pullFromCloud() {
   const fields = await fsGet();
   if (!fields) return false;
   const appData = fsRead(fields.appData);
+  const localLogins = loadLogins();   // 取り込みで消えないよう、端末側のログイン記録を控える
   if (appData) {
     try {
       const obj = JSON.parse(appData);
       Object.entries(obj).forEach(([k, v]) => localStorage.setItem(k, v));
     } catch {}
   }
+  mergeLogins(localLogins);           // 端末とクラウドのログイン日をまとめる
+  recordLogin();                      // 取り込み後にも当日分を確実に残す
+  updateLoginMeter();
   // 取り込んだテーマを画面に反映する（以前は保存値と表示がずれていた）
   applyTheme(localStorage.getItem(A_THEME) || 'dark', false);
   return true;
+}
+
+/* 端末側のログイン日を、取り込んだ内容に足し合わせる（上書きで減らさない） */
+function mergeLogins(local) {
+  const merged = loadLogins();
+  let changed = false;
+  Object.entries(local || {}).forEach(([mk, days]) => {
+    const before = merged[mk] || [];
+    const set = new Set([...before, ...(days || [])]);
+    if (set.size !== before.length) changed = true;
+    merged[mk] = [...set].sort((a, b) => a - b);
+  });
+  if (changed) {
+    localStorage.setItem(loginsKey(), JSON.stringify(merged));
+    scheduleCloudSync();
+  }
 }
 
 function goalsKey() { return `ura-${localStorage.getItem(A_USER)||'default'}-goals`; }
@@ -3677,16 +3697,30 @@ function closeAccountModal() {
 /* ── キーボードを閉じたときに画面を固定する ──
    iOSは閉じる際にページ位置を再計算して動かすため、
    目標の入力欄から離れた直後の位置を数回押さえ直して留める。 */
-function pinScroll(y, done) {
+let _goalScrollY = null;   // 目標を入力している間の表示位置
+
+function pinScroll(y) {
   const pin = () => { if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y); };
-  [0, 60, 150, 300, 450].forEach(ms => setTimeout(pin, ms));
-  if (done) setTimeout(done, 500);
+  // iOS はキーボードが閉じ切った後にも位置を変えるので、1秒ほど押さえ続ける
+  [0, 50, 120, 220, 350, 500, 700, 950].forEach(ms => setTimeout(pin, ms));
 }
 
+const isGoalInput = el => !!(el && el.classList && el.classList.contains('goal-input'));
+
+document.addEventListener('focusin', e => {
+  if (isGoalInput(e.target)) _goalScrollY = window.scrollY;
+});
+
+// 入力中の位置を追いかけ、☑︎を押した瞬間の見え方を基準にする
+window.addEventListener('scroll', () => {
+  if (_goalScrollY !== null) _goalScrollY = window.scrollY;
+}, { passive: true });
+
 document.addEventListener('focusout', e => {
-  const t = e.target;
-  if (!t || !t.classList || !t.classList.contains('goal-input')) return;
-  pinScroll(window.scrollY);
+  if (!isGoalInput(e.target)) return;
+  const y = _goalScrollY !== null ? _goalScrollY : window.scrollY;
+  _goalScrollY = null;
+  pinScroll(y);
 });
 
 // ── 画面回転・リサイズ対応 ──────────────────────────
