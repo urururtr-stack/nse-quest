@@ -1888,10 +1888,11 @@ function refreshCounter(w) {
 // 月次ページで、この月の目標を保存する
 function saveMonthGoal(aid, val) {
   const wasLocked = monthLocked();
-  const sy = window.scrollY;        // 再描画で表示位置が飛ばないよう控える
+  const sy = window.scrollY;
   setGoal(aid, val);
   // ロックの表示が変わるときだけ画面を作り直し、それ以外はその行だけ更新する
-  if (monthLocked() !== wasLocked) renderMonthly();
+  const rebuilt = monthLocked() !== wasLocked;
+  if (rebuilt) renderMonthly();
   else refreshGoalRow(aid);
   updateProgress();
   const { numWeeks } = monthInfo(yr, mo);
@@ -1901,8 +1902,8 @@ function saveMonthGoal(aid, val) {
     playUnlockFx();
   }
   for (let w = 0; w < numWeeks; w++) refreshGoalBars(w);
-  // 高さが変わっても元の位置に留まるようにする
-  requestAnimationFrame(() => window.scrollTo(0, sy));
+  // 画面を作り直したときだけ、高さの変化で位置が飛ばないよう戻す
+  if (rebuilt) requestAnimationFrame(() => window.scrollTo(0, sy));
 }
 
 /* 表示中の月に目標が1件も設定されていなければカウンターを使えなくする。
@@ -2177,6 +2178,7 @@ function goalRowHtml(a) {
         <strong${st ? ` class="${st.trim()}"` : ''}>${Math.round(total*10)/10}</strong>
         <span>/</span>
         <input class="goal-input" type="number" inputmode="numeric" min="0" placeholder="目標"
+          id="ginput-${a.id}" enterkeyhint="next" onkeydown="goalInputKey(event,'${a.id}')"
           value="${goal > 0 ? goal : ''}" onchange="saveMonthGoal('${a.id}',this.value)"${goalLock ? ' disabled' : ''}>
         <span class="goal-row-unit">${a.unit}</span>
       </div>
@@ -2184,6 +2186,19 @@ function goalRowHtml(a) {
     <div class="goal-bar"><div class="goal-bar-fill${st}" style="width:${Math.min(rate,100)}%"></div></div>
     <div class="goal-row-sub">${goal > 0 ? `達成率 ${rate}%　${rate >= 100 ? '目標達成' : `あと ${Math.round(rest*10)/10}${a.unit}`}` : '目標を入力すると進捗が表示されます'}</div>
   </div>`;
+}
+
+/* Enter（確定）で次の項目の入力欄へ移る。最後の項目ならキーボードを閉じる */
+function goalInputKey(ev, aid) {
+  if (ev.key !== 'Enter') return;
+  ev.preventDefault();
+  saveMonthGoal(aid, ev.target.value);
+  const i = ACTIONS.findIndex(a => a.id === aid);
+  for (let k = i + 1; k < ACTIONS.length; k++) {
+    const nx = document.getElementById(`ginput-${ACTIONS[k].id}`);
+    if (nx && !nx.disabled) { nx.focus(); if (nx.select) nx.select(); return; }
+  }
+  ev.target.blur();
 }
 
 // 1行だけ描き直す（画面全体を作り直さないので表示位置が動かない）
@@ -3669,10 +3684,10 @@ document.addEventListener('focusin', e => {
 document.addEventListener('focusout', e => {
   if (e.target.tagName === 'INPUT') {
     _kbOpen = false;
-    // キーボードアニメーション完了後にスクロール位置を復元
+    // 続けて別の入力欄に移った場合は戻さない（0msだと移動前に実行され画面が飛ぶ）
     setTimeout(() => {
       if (!_kbOpen) window.scrollTo({ top: _lastScrollY, behavior: 'instant' });
-    }, 0);
+    }, 150);
   }
 });
 
