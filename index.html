@@ -590,11 +590,13 @@ body.theme-light .cday.today { box-shadow: var(--neon-box); }
   opacity: 0;                      /* 既定は透明。走っている間だけ見せる */
   animation: cSweep .55s ease-out;
 }
+/* background-position の % は値が増えるほど見た目が左へ動くため、
+   左から右へ走らせるには 120% → -120% の向きにする */
 @keyframes cSweep {
-  0%   { background-position: -120% 0; opacity: 0; }
+  0%   { background-position: 120% 0; opacity: 0; }
   15%  { opacity: 1; }
   85%  { opacity: 1; }
-  100% { background-position: 120% 0; opacity: 0; }
+  100% { background-position: -120% 0; opacity: 0; }
 }
 /* 押した位置から広がる波紋 */
 .counter-ring {
