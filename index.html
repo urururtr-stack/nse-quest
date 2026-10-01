@@ -2240,21 +2240,18 @@ function renderMonthly() {
       <div class="memo-label">今月「良かった」行動</div>
       <textarea class="memo" id="m-good" name="memo-good" placeholder="例：朝イチでSTを3件こなす習慣ができた"
         autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"
-        readonly onfocus="this.removeAttribute('readonly')"
         oninput="autoSave()">${m.good||''}</textarea>
     </div>
     <div class="memo-wrap">
       <div class="memo-label">来月「改善する」と決めた行動</div>
       <textarea class="memo" id="m-improve" name="memo-improve" placeholder="例：CTを週◯件まで増やす"
         autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"
-        readonly onfocus="this.removeAttribute('readonly')"
         oninput="autoSave()">${m.improve||''}</textarea>
     </div>
     <div class="memo-wrap">
       <div class="memo-label">今月の自分を褒めろ</div>
       <textarea class="memo" id="m-notes" name="memo-notes" placeholder="自由記入"
         autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"
-        readonly onfocus="this.removeAttribute('readonly')"
         oninput="autoSave()">${m.notes||''}</textarea>
     </div>
     <div class="reset-wrap">
@@ -3677,11 +3674,20 @@ function closeAccountModal() {
   document.getElementById('acctModal').style.display = 'none';
 }
 
-/* ── キーボードを閉じたときの処理 ──
-   以前はスクロール位置を記録して閉じた後に戻していたが、
-   「完了」を押すたびに画面が動いてしまうため、こちらからは位置を変えない。
-   記録セルは手入力できない（カウンターのみ）ので、
-   ページ内でキーボードが出るのは月間目標の入力欄だけ。 */
+/* ── キーボードを閉じたときに画面を固定する ──
+   iOSは閉じる際にページ位置を再計算して動かすため、
+   目標の入力欄から離れた直後の位置を数回押さえ直して留める。 */
+function pinScroll(y, done) {
+  const pin = () => { if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y); };
+  [0, 60, 150, 300, 450].forEach(ms => setTimeout(pin, ms));
+  if (done) setTimeout(done, 500);
+}
+
+document.addEventListener('focusout', e => {
+  const t = e.target;
+  if (!t || !t.classList || !t.classList.contains('goal-input')) return;
+  pinScroll(window.scrollY);
+});
 
 // ── 画面回転・リサイズ対応 ──────────────────────────
 let _resizeTimer = null;
