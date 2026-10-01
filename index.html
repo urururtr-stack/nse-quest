@@ -116,6 +116,115 @@ body.theme-light .boot-splash::after { opacity: .14; }
 .today-btn:active { border-color: var(--white); color: var(--white); box-shadow: var(--neon-box); }
 .today-btn.current { border-color: var(--white); color: var(--white); text-shadow: var(--neon); }
 
+/* ── ロック中の鍵ステッカーと解除条件 ── */
+.lock-box { margin-bottom: 12px; }
+.lock-cond-title {
+  font-size: 10px; letter-spacing: 2px; color: #e05555; margin-bottom: 4px;
+}
+.lock-cond {
+  font-size: 10px; color: #e05555; letter-spacing: 1px; line-height: 1.6;
+  padding-left: 1px;
+}
+.lock-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid rgba(224,85,85,.5); color: #e05555;
+  padding: 5px 11px 5px 9px; margin-bottom: 10px;
+  font-size: 10px; letter-spacing: 3px;
+  animation: lockPulse 2s ease-in-out infinite;
+}
+@keyframes lockPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(224,85,85,0); }
+  50%      { box-shadow: 0 0 10px rgba(224,85,85,.45); }
+}
+
+/* ── 解除の演出 ── */
+.unlock-fx {
+  position: fixed; inset: 0; z-index: 600; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.55);
+  animation: fxFade .3s ease .1s, fxOut .5s ease 2.9s forwards;
+}
+body.theme-light .unlock-fx { background: rgba(255,255,255,.6); }
+@keyframes fxFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fxOut  { to { opacity: 0; } }
+.unlock-ring {
+  position: absolute; width: 90px; height: 90px; border-radius: 50%;
+  border: 1px solid #C9A84C;
+  animation: ringOut 1.1s cubic-bezier(.2,.8,.3,1) forwards;
+}
+.unlock-ring.d2 { animation-delay: .18s; }
+.unlock-ring.d3 { animation-delay: .36s; }
+@keyframes ringOut {
+  from { transform: scale(.3); opacity: .9; }
+  to   { transform: scale(3.2); opacity: 0; }
+}
+.unlock-core { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.unlock-lock { color: #C9A84C; filter: drop-shadow(0 0 10px rgba(201,168,76,.8)); }
+.unlock-lock .shackle {
+  transform-origin: 16px 11px;
+  animation: shackleOpen .5s cubic-bezier(.3,1.4,.5,1) .25s forwards;
+}
+@keyframes shackleOpen {
+  to { transform: translate(2px, -5px) rotate(14deg); }
+}
+.unlock-lock .body { animation: bodyPop .45s cubic-bezier(.3,1.5,.5,1); }
+@keyframes bodyPop { 0% { opacity: 0; transform: scale(.6); } 100% { opacity: 1; transform: scale(1); } }
+/* 文言は同じ位置で入れ替える */
+.unlock-msg {
+  position: relative; width: 100%; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+}
+.unlock-text, .unlock-go { position: absolute; white-space: nowrap; }
+.unlock-text {
+  font-size: 12px; letter-spacing: 6px; color: #C9A84C; text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(201,168,76,.8); opacity: 0;
+  animation: textIn .5s ease .45s forwards, textOut .35s ease 1.2s forwards;
+}
+@keyframes textIn {
+  from { opacity: 0; letter-spacing: 14px; }
+  to   { opacity: 1; letter-spacing: 6px; }
+}
+@keyframes textOut {
+  to { opacity: 0; transform: translateY(-8px); filter: blur(3px); }
+}
+
+/* 走査線が1本走ってから「Let's go!!」が現れる */
+.unlock-scan {
+  position: absolute; left: -24px; right: -24px; height: 2px;
+  background: linear-gradient(90deg, transparent, #00e5ff, transparent);
+  opacity: 0; animation: scanSweep .75s ease 1.35s;
+}
+@keyframes scanSweep {
+  0%   { opacity: 0; transform: translateY(-24px) scaleX(.4); }
+  25%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(24px) scaleX(1); }
+}
+.unlock-go {
+  font-size: 24px; font-weight: 300; letter-spacing: 4px; color: #fff;
+  opacity: 0;
+  animation: goIn .55s cubic-bezier(.2,1.35,.4,1) 1.6s forwards,
+             goGlitch 1.4s steps(1, end) 2.05s;
+}
+body.theme-light .unlock-go { color: #111; }
+@keyframes goIn {
+  from { opacity: 0; transform: translateY(14px) scale(.82) skewX(-14deg); filter: blur(7px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+/* 色ズレを一瞬挟んで近未来感を出す */
+@keyframes goGlitch {
+  0%, 100% { text-shadow: 0 0 12px rgba(255,255,255,.75); transform: none; }
+  12%      { text-shadow: -2px 0 #00e5ff, 2px 0 #ff2fb0, 0 0 16px rgba(255,255,255,.9); transform: translateX(-1px); }
+  22%      { text-shadow: 2px 0 #00e5ff, -2px 0 #ff2fb0, 0 0 16px rgba(255,255,255,.9); transform: translateX(1px); }
+  32%      { text-shadow: 0 0 14px rgba(255,255,255,.85); transform: none; }
+  48%      { text-shadow: -1px 0 #00e5ff, 1px 0 #ff2fb0, 0 0 18px rgba(255,255,255,.95); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .unlock-ring, .unlock-lock .shackle, .unlock-lock .body,
+  .unlock-text, .unlock-scan, .unlock-go { animation: none; }
+  .unlock-text { opacity: 0; }
+  .unlock-go { opacity: 1; }
+}
+
 /* ── ログイン日数の指標（その月の日数が最大） ── */
 .login-meter { margin: 6px 0 2px; }
 .login-meter-bar { height: 3px; background: var(--border); overflow: hidden; }
@@ -460,22 +569,58 @@ body.theme-light .cday.today { box-shadow: var(--neon-box); }
   color: var(--white); text-shadow: var(--neon);
 }
 .counter-unit { font-size: 10px; color: var(--silver); margin-left: 3px; letter-spacing: 1px; }
-.counter-val.bump { animation: cbump .32s cubic-bezier(.3,1.4,.5,1); }
+.counter-val.bump { animation: cbump .42s cubic-bezier(.3,1.4,.5,1); }
 @keyframes cbump {
   0%   { transform: scale(1); }
-  35%  { transform: scale(1.4); text-shadow: 0 0 10px #fff, 0 0 28px rgba(255,255,255,.85); }
+  16%  { transform: scale(1.42) translateX(-1.5px);
+         text-shadow: -2px 0 #00e5ff, 2px 0 #ff2fb0, 0 0 14px rgba(255,255,255,.9); }
+  32%  { transform: scale(1.3) translateX(1.5px);
+         text-shadow: 2px 0 #00e5ff, -2px 0 #ff2fb0, 0 0 22px #fff; }
+  55%  { transform: scale(1.12);
+         text-shadow: 0 0 14px #fff, 0 0 32px rgba(255,255,255,.8); }
   100% { transform: scale(1); }
+}
+/* 押した瞬間、行を光が左から右へ走り抜ける */
+.counter-item { position: relative; }
+.counter-item.hit::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgba(0,229,255,.22) 40%,
+              rgba(255,255,255,.34) 50%, rgba(0,229,255,.22) 60%, transparent 100%);
+  background-size: 220% 100%;
+  opacity: 0;                      /* 既定は透明。走っている間だけ見せる */
+  animation: cSweep .55s ease-out;
+}
+@keyframes cSweep {
+  0%   { background-position: -120% 0; opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { background-position: 120% 0; opacity: 0; }
+}
+/* 押した位置から広がる波紋 */
+.counter-ring {
+  position: fixed; z-index: 880; pointer-events: none;
+  width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
+  border: 1px solid #00e5ff; box-shadow: 0 0 12px rgba(0,229,255,.7);
+  animation: cRing .6s cubic-bezier(.2,.8,.3,1) forwards;
+}
+@keyframes cRing {
+  from { transform: scale(.35); opacity: .95; }
+  to   { transform: scale(4.4); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .counter-item.hit::after, .counter-ring { animation: none; opacity: 0; }
 }
 .counter-pop {
   position: fixed; pointer-events: none; z-index: 900;
-  font-size: 16px; font-weight: 300; letter-spacing: 1px;
-  color: var(--white); text-shadow: var(--neon);
+  font-size: 17px; font-weight: 400; letter-spacing: 2px;
+  color: var(--white);
+  text-shadow: 0 0 10px rgba(0,229,255,.95), 0 0 26px rgba(255,255,255,.55);
   animation: cpop .85s ease-out forwards;
 }
 @keyframes cpop {
-  0%   { opacity: 0; transform: translate(-50%, 0) scale(.8); }
-  22%  { opacity: 1; transform: translate(-50%, -20px) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -56px) scale(.9); }
+  0%   { opacity: 0; transform: translate(-50%, 0) scale(.7) skewX(-18deg); filter: blur(5px); }
+  20%  { opacity: 1; transform: translate(-50%, -20px) scale(1.06) skewX(0); filter: none; }
+  100% { opacity: 0; transform: translate(-50%, -58px) scale(.9); }
 }
 .measure-cell.flash { animation: cflash .45s ease; }
 @keyframes cflash {
@@ -1744,8 +1889,11 @@ function saveMonthGoal(aid, val) {
   renderMonthly();
   updateProgress();
   const { numWeeks } = monthInfo(yr, mo);
-  // 全項目そろってカウンターが使えるようになったら週ページを作り直す
-  if (wasLocked && !monthLocked()) { for (let w = 0; w < numWeeks; w++) renderWeek(w); }
+  // 全項目そろってカウンターが使えるようになったら週ページを作り直し、解除演出を出す
+  if (wasLocked && !monthLocked()) {
+    for (let w = 0; w < numWeeks; w++) renderWeek(w);
+    playUnlockFx();
+  }
   for (let w = 0; w < numWeeks; w++) refreshGoalBars(w);
 }
 
@@ -1756,6 +1904,21 @@ function monthLocked(y = yr, m = mo) {
   const isPast = y < t.getFullYear() || (y === t.getFullYear() && m < t.getMonth() + 1);
   if (isPast) return false;
   return !ACTIONS.every(a => getGoal(a.id, y, m) > 0);   // 1項目でも未入力なら使えない
+}
+
+/* 指定した月の振り返り3項目がすべて書かれているか */
+function reviewDone(y, m) {
+  const d = (y === yr && m === mo) ? data : getStoredMonth(y, m);
+  const mm = d?.monthly || {};
+  return ['good', 'improve', 'notes'].every(k => (mm[k] || '').trim() !== '');
+}
+
+/* 今月の振り返りが未完了のうちは、翌月以降の目標を入力させない */
+function goalInputLocked(y = yr, m = mo) {
+  const t = new Date();
+  const cy = t.getFullYear(), cm = t.getMonth() + 1;
+  const isFutureMonth = y > cy || (y === cy && m > cm);
+  return isFutureMonth && !reviewDone(cy, cm);
 }
 
 /* ── ログインした日の記録 ──
@@ -1850,11 +2013,20 @@ function stepCount(aid, w, delta, ev) {
   const a = actionById(aid);
   if (cell) {
     cell.innerHTML = `${next}<span class="counter-unit">${a ? a.unit : UNIT}</span>`;
-    cell.classList.remove('bump'); void cell.offsetWidth; cell.classList.add('bump');
+    cell.classList.remove('bump');
+    if (delta > 0) { void cell.offsetWidth; cell.classList.add('bump'); }
   }
-  if (inp) { inp.classList.remove('flash'); void inp.offsetWidth; inp.classList.add('flash'); }
-  if (delta > 0 && ev) showCountPop(ev, '+1');
-  if (navigator.vibrate) navigator.vibrate(delta > 0 ? 18 : 10);
+  if (inp) {
+    inp.classList.remove('flash');
+    if (delta > 0) { void inp.offsetWidth; inp.classList.add('flash'); }
+  }
+  const item = document.getElementById(`citem-${aid}-${w}`);
+  if (item && delta > 0) {
+    item.classList.remove('hit'); void item.offsetWidth; item.classList.add('hit');
+    setTimeout(() => item.classList.remove('hit'), 600);
+  }
+  if (delta > 0 && ev) { showCountPop(ev, '+1'); showCountRing(ev); }
+  if (navigator.vibrate) navigator.vibrate(delta > 0 ? 18 : 10);   // 触覚だけは減算時も残す
 
   updateWeekDelta(w);
   refreshGoalBars(w);
@@ -1895,6 +2067,17 @@ function celebrateGoal(a) {
     setTimeout(() => p.remove(), 1300);
   }
   if (navigator.vibrate) navigator.vibrate([25, 40, 25, 40, 110]);
+}
+
+// 押した位置から波紋を広げる
+function showCountRing(ev) {
+  const x = ev.clientX !== undefined ? ev.clientX : (window.innerWidth / 2);
+  const y = ev.clientY !== undefined ? ev.clientY : 100;
+  const r = document.createElement('div');
+  r.className = 'counter-ring';
+  r.style.cssText = `left:${x}px;top:${y}px`;
+  document.body.appendChild(r);
+  setTimeout(() => r.remove(), 650);
 }
 
 function showCountPop(ev, txt) {
@@ -1970,6 +2153,9 @@ function getMonthTotal(key) {
 
 function renderMonthly() {
   const m = data.monthly;
+  const _t = new Date(), cyr = _t.getFullYear(), cmo = _t.getMonth() + 1;
+  const goalLock = goalInputLocked();   // 今月の振り返りが未完了なら翌月以降は入力不可
+  const needGoals = monthLocked();      // 目標が未入力の枠があり、その月がまだ使えない状態か
 
   // 項目ごとの「目標・実績・進捗」行（目標はこの月だけの値として編集できる）
   function goalRow(a) {
@@ -1985,7 +2171,7 @@ function renderMonthly() {
           <strong${st ? ` class="${st.trim()}"` : ''}>${Math.round(total*10)/10}</strong>
           <span>/</span>
           <input class="goal-input" type="number" inputmode="numeric" min="0" placeholder="目標"
-            value="${goal > 0 ? goal : ''}" onchange="saveMonthGoal('${a.id}',this.value)">
+            value="${goal > 0 ? goal : ''}" onchange="saveMonthGoal('${a.id}',this.value)"${goalLock ? ' disabled' : ''}>
           <span class="goal-row-unit">${a.unit}</span>
         </div>
       </div>
@@ -2000,9 +2186,19 @@ function renderMonthly() {
 
   document.getElementById('pane-monthly').innerHTML = `
     <div class="section-label" style="margin-bottom:4px;">${yr}年${mo}月の目標と進捗</div>
-    <div style="font-size:10px;color:#e05555;letter-spacing:1px;line-height:1.6;margin-bottom:12px">
-      各項目の全ての枠に目標数値を入力しないと使用できません。
-    </div>
+    ${(needGoals || goalLock) ? `<div class="lock-box">
+      <div class="lock-badge">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <rect x="4.5" y="10.5" width="15" height="10.5" rx="2"/>
+          <path d="M8.2 10.5V7.2a3.8 3.8 0 0 1 7.6 0v3.3"/>
+          <circle cx="12" cy="15.6" r="1.4" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>ロック中</span>
+      </div>
+      <div class="lock-cond-title">［解除条件］</div>
+      ${goalLock ? `<div class="lock-cond">①${cyr}年${cmo}月の振り返りを全て入力しないと、翌月以降の目標数値は入力できません。</div>` : ''}
+      ${needGoals ? `<div class="lock-cond">②各項目の全ての枠に目標数値を入力しないと使用できません。</div>` : ''}
+    </div>` : ''}
     ${totalsHtml}
     <div class="sep" style="margin:20px 0"></div>
     <div class="section-label">振り返り</div>
@@ -2739,6 +2935,36 @@ function saveAccountInfo() {
   scheduleCloudSync();
   showMsg('acctMsg', '', '');
   showToast('保存しました');
+}
+
+// 目標がそろってロックが外れた瞬間の演出
+function playUnlockFx() {
+  const prev = document.getElementById('unlockFx');
+  if (prev) prev.remove();
+  const el = document.createElement('div');
+  el.id = 'unlockFx';
+  el.className = 'unlock-fx';
+  el.innerHTML = `
+    <div class="unlock-ring"></div>
+    <div class="unlock-ring d2"></div>
+    <div class="unlock-ring d3"></div>
+    <div class="unlock-core">
+      <svg class="unlock-lock" width="64" height="64" viewBox="0 0 32 32" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path class="shackle" d="M11 14V9.5a5 5 0 0 1 10 0V14"/>
+        <g class="body">
+          <rect x="6.5" y="14" width="19" height="13" rx="2.5"/>
+          <circle cx="16" cy="20.5" r="1.8" fill="currentColor" stroke="none"/>
+        </g>
+      </svg>
+      <div class="unlock-msg">
+        <div class="unlock-text">Unlocked</div>
+        <div class="unlock-scan"></div>
+        <div class="unlock-go" data-txt="Let's go!!">Let's go!!</div>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
 }
 
 // チェックマークが描かれる保存完了アニメーション
