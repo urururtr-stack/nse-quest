@@ -3710,56 +3710,49 @@ function closeAccountModal() {
 /* ── キーボードを閉じたときに画面を固定する ──
    iOSは閉じる際にページ位置を再計算して動かすため、
    目標の入力欄から離れた直後の位置を数回押さえ直して留める。 */
-let _goalViewTop = null;   // 目標を入力している間の「画面上端の位置」
-
-/* iOS はキーボードが開いている間、ページを動かさずに表示領域だけをずらす。
-   そのため scrollY だけ見ても位置が分からない。表示領域のずれ幅を足して
-   「いま画面の上端に何が来ているか」を求める。 */
-function viewTop() {
-  const vv = window.visualViewport;
-  return window.scrollY + (vv ? vv.offsetTop : 0);
-}
-
+/* ── 目標入力でキーボードが開閉しても画面を動かさない ──
+   Safari は入力欄を見せるためにページ自体をスクロールする。
+   タップ直前の位置を控えておき、入力を終えたらそこへ戻す。 */
+let _goalBaseY = null;     // タップ直前のページ位置
+let _goalFocusSeq = 0;     // 連続して別の欄へ移ったかの判定用
 let _pinTarget = null, _pinUntil = 0;
 
-/* 目標の位置に戻す。キーボードの開閉中は表示領域のずれも差し引く */
 function applyPin() {
   if (_pinTarget === null) return;
   if (Date.now() > _pinUntil) { _pinTarget = null; return; }
-  const off = window.visualViewport ? window.visualViewport.offsetTop : 0;
-  const want = _pinTarget - off;
-  if (Math.abs(window.scrollY - want) > 1) window.scrollTo(0, want);
+  if (Math.abs(window.scrollY - _pinTarget) > 1) window.scrollTo(0, _pinTarget);
 }
 
 function pinScroll(y) {
   _pinTarget = y;
-  _pinUntil = Date.now() + 1800;   // 閉じ切った後の調整にも追従する
-  [0, 50, 120, 220, 350, 500, 700, 950, 1300, 1750].forEach(ms => setTimeout(applyPin, ms));
+  _pinUntil = Date.now() + 1500;   // 閉じ切った後の調整にも追従する
+  [0, 50, 120, 220, 350, 500, 700, 950, 1300].forEach(ms => setTimeout(applyPin, ms));
 }
 
 const isGoalInput = el => !!(el && el.classList && el.classList.contains('goal-input'));
-const trackGoalView = () => {
-  if (_goalViewTop !== null) _goalViewTop = viewTop();
-  else applyPin();   // 入力後、表示領域が動いたらすぐ押さえ直す
-};
 
 document.addEventListener('focusin', e => {
-  if (isGoalInput(e.target)) _goalViewTop = viewTop();
+  if (!isGoalInput(e.target)) return;
+  _goalFocusSeq++;
+  if (_goalBaseY === null) _goalBaseY = window.scrollY;   // 最初にタップした時点の位置
 });
-
-// 入力中の位置を追いかけ、☑︎を押した瞬間の見え方を基準にする
-window.addEventListener('scroll', trackGoalView, { passive: true });
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('scroll', trackGoalView);
-  window.visualViewport.addEventListener('resize', trackGoalView);
-}
 
 document.addEventListener('focusout', e => {
   if (!isGoalInput(e.target)) return;
-  const y = _goalViewTop !== null ? _goalViewTop : viewTop();
-  _goalViewTop = null;
-  pinScroll(y);
+  const seq = _goalFocusSeq;
+  setTimeout(() => {
+    if (seq !== _goalFocusSeq) return;      // 続けて別の欄に移ったので戻さない
+    const y = _goalBaseY;
+    _goalBaseY = null;
+    if (y !== null) pinScroll(y);
+  }, 120);
 });
+
+if (window.visualViewport) {
+  // キーボードが閉じる途中で位置が動いたら押さえ直す
+  window.visualViewport.addEventListener('resize', applyPin);
+  window.visualViewport.addEventListener('scroll', applyPin);
+}
 
 // ── 画面回転・リサイズ対応 ──────────────────────────
 let _resizeTimer = null;
