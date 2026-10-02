@@ -3697,29 +3697,40 @@ function closeAccountModal() {
 /* ── キーボードを閉じたときに画面を固定する ──
    iOSは閉じる際にページ位置を再計算して動かすため、
    目標の入力欄から離れた直後の位置を数回押さえ直して留める。 */
-let _goalScrollY = null;   // 目標を入力している間の表示位置
+let _goalViewTop = null;   // 目標を入力している間の「画面上端の位置」
+
+/* iOS はキーボードが開いている間、ページを動かさずに表示領域だけをずらす。
+   そのため scrollY だけ見ても位置が分からない。表示領域のずれ幅を足して
+   「いま画面の上端に何が来ているか」を求める。 */
+function viewTop() {
+  const vv = window.visualViewport;
+  return window.scrollY + (vv ? vv.offsetTop : 0);
+}
 
 function pinScroll(y) {
-  const pin = () => { if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y); };
-  // iOS はキーボードが閉じ切った後にも位置を変えるので、1秒ほど押さえ続ける
+  const pin = () => { if (Math.abs(viewTop() - y) > 1) window.scrollTo(0, y - (window.visualViewport ? window.visualViewport.offsetTop : 0)); };
+  // キーボードが閉じ切った後にも位置が変わるので、1秒ほど押さえ続ける
   [0, 50, 120, 220, 350, 500, 700, 950].forEach(ms => setTimeout(pin, ms));
 }
 
 const isGoalInput = el => !!(el && el.classList && el.classList.contains('goal-input'));
+const trackGoalView = () => { if (_goalViewTop !== null) _goalViewTop = viewTop(); };
 
 document.addEventListener('focusin', e => {
-  if (isGoalInput(e.target)) _goalScrollY = window.scrollY;
+  if (isGoalInput(e.target)) _goalViewTop = viewTop();
 });
 
 // 入力中の位置を追いかけ、☑︎を押した瞬間の見え方を基準にする
-window.addEventListener('scroll', () => {
-  if (_goalScrollY !== null) _goalScrollY = window.scrollY;
-}, { passive: true });
+window.addEventListener('scroll', trackGoalView, { passive: true });
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('scroll', trackGoalView);
+  window.visualViewport.addEventListener('resize', trackGoalView);
+}
 
 document.addEventListener('focusout', e => {
   if (!isGoalInput(e.target)) return;
-  const y = _goalScrollY !== null ? _goalScrollY : window.scrollY;
-  _goalScrollY = null;
+  const y = _goalViewTop !== null ? _goalViewTop : viewTop();
+  _goalViewTop = null;
   pinScroll(y);
 });
 
