@@ -727,8 +727,9 @@ body.theme-light .cday.today { box-shadow: var(--neon-box); }
   padding: 13px; resize: none; outline: none; min-height: 80px;
   font-family: inherit; transition: border-color .15s, box-shadow .15s;
 }
+.memo { white-space: pre-wrap; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; }
 .memo:focus { border-color: var(--white); box-shadow: var(--neon-box); }
-.memo::placeholder { color: var(--border2); }
+.memo:empty::before { content: attr(data-ph); color: var(--border2); pointer-events: none; }
 
 /* ── Monthly ── */
 .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
@@ -1600,7 +1601,7 @@ function collect() {
   }
   ['good','improve','notes'].forEach(k => {
     const el = document.getElementById(`m-${k}`);
-    if (el) data.monthly[k] = el.value;
+    if (el) data.monthly[k] = memoValue(el);
   });
 }
 
@@ -2208,6 +2209,15 @@ function refreshGoalRow(aid) {
   if (el && a) el.outerHTML = goalRowHtml(a);
 }
 
+/* 振り返り欄は <textarea> ではなく編集可能な要素にしている。
+   iOS が「連絡先を自動入力」の対象と判定しないようにするため。 */
+function escHtml(t) {
+  return String(t).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c]));
+}
+function memoValue(el) {
+  return (el.innerText !== undefined ? el.innerText : el.textContent || '').replace(/\u00a0/g, ' ').trim();
+}
+
 function renderMonthly() {
   const m = data.monthly;
   const _p = prevMonthOf(yr, mo);       // 振り返りを求める対象＝表示中の月の前月
@@ -2238,21 +2248,24 @@ function renderMonthly() {
     <div class="section-label">振り返り</div>
     <div class="memo-wrap">
       <div class="memo-label">今月「良かった」行動</div>
-      <textarea class="memo" id="m-good" name="memo-good" placeholder="例：朝イチでSTを3件こなす習慣ができた"
-        autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"
-        oninput="autoSave()">${m.good||''}</textarea>
+      <div class="memo" id="m-good" contenteditable="true" role="textbox" aria-multiline="true"
+        data-ph="例：朝イチでSTを3件こなす習慣ができた"
+        autocorrect="off" autocapitalize="sentences" spellcheck="false"
+        oninput="autoSave()">${escHtml(m.good||'')}</div>
     </div>
     <div class="memo-wrap">
       <div class="memo-label">来月「改善する」と決めた行動</div>
-      <textarea class="memo" id="m-improve" name="memo-improve" placeholder="例：CTを週◯件まで増やす"
-        autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"
-        oninput="autoSave()">${m.improve||''}</textarea>
+      <div class="memo" id="m-improve" contenteditable="true" role="textbox" aria-multiline="true"
+        data-ph="例：CTを週◯件まで増やす"
+        autocorrect="off" autocapitalize="sentences" spellcheck="false"
+        oninput="autoSave()">${escHtml(m.improve||'')}</div>
     </div>
     <div class="memo-wrap">
       <div class="memo-label">今月の自分を褒めろ</div>
-      <textarea class="memo" id="m-notes" name="memo-notes" placeholder="自由記入"
-        autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"
-        oninput="autoSave()">${m.notes||''}</textarea>
+      <div class="memo" id="m-notes" contenteditable="true" role="textbox" aria-multiline="true"
+        data-ph="自由記入"
+        autocorrect="off" autocapitalize="sentences" spellcheck="false"
+        oninput="autoSave()">${escHtml(m.notes||'')}</div>
     </div>
     <div class="reset-wrap">
       <button class="reset-btn" onclick="resetMonthRecords()">${yr}年${mo}月の記録をリセット</button>
@@ -3707,14 +3720,28 @@ function viewTop() {
   return window.scrollY + (vv ? vv.offsetTop : 0);
 }
 
+let _pinTarget = null, _pinUntil = 0;
+
+/* 目標の位置に戻す。キーボードの開閉中は表示領域のずれも差し引く */
+function applyPin() {
+  if (_pinTarget === null) return;
+  if (Date.now() > _pinUntil) { _pinTarget = null; return; }
+  const off = window.visualViewport ? window.visualViewport.offsetTop : 0;
+  const want = _pinTarget - off;
+  if (Math.abs(window.scrollY - want) > 1) window.scrollTo(0, want);
+}
+
 function pinScroll(y) {
-  const pin = () => { if (Math.abs(viewTop() - y) > 1) window.scrollTo(0, y - (window.visualViewport ? window.visualViewport.offsetTop : 0)); };
-  // キーボードが閉じ切った後にも位置が変わるので、1秒ほど押さえ続ける
-  [0, 50, 120, 220, 350, 500, 700, 950].forEach(ms => setTimeout(pin, ms));
+  _pinTarget = y;
+  _pinUntil = Date.now() + 1800;   // 閉じ切った後の調整にも追従する
+  [0, 50, 120, 220, 350, 500, 700, 950, 1300, 1750].forEach(ms => setTimeout(applyPin, ms));
 }
 
 const isGoalInput = el => !!(el && el.classList && el.classList.contains('goal-input'));
-const trackGoalView = () => { if (_goalViewTop !== null) _goalViewTop = viewTop(); };
+const trackGoalView = () => {
+  if (_goalViewTop !== null) _goalViewTop = viewTop();
+  else applyPin();   // 入力後、表示領域が動いたらすぐ押さえ直す
+};
 
 document.addEventListener('focusin', e => {
   if (isGoalInput(e.target)) _goalViewTop = viewTop();
