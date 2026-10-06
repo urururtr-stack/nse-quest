@@ -572,37 +572,38 @@ body.theme-light .cday.today { box-shadow: var(--neon-box); }
 .counter-val.bump { animation: cbump .42s cubic-bezier(.3,1.4,.5,1); }
 @keyframes cbump {
   0%   { transform: scale(1); }
-  16%  { transform: scale(1.42) translateX(-1.5px);
-         text-shadow: -2px 0 #00e5ff, 2px 0 #ff2fb0, 0 0 14px rgba(255,255,255,.9); }
-  32%  { transform: scale(1.3) translateX(1.5px);
-         text-shadow: 2px 0 #00e5ff, -2px 0 #ff2fb0, 0 0 22px #fff; }
+  16%  { transform: scale(1.42);
+         color: #ffe49a; text-shadow: 0 0 8px #ffe49a, 0 0 22px rgba(201,168,76,.95); }
+  32%  { transform: scale(1.3);
+         color: #ffe49a; text-shadow: 0 0 12px #fff2cf, 0 0 30px rgba(201,168,76,.9); }
   55%  { transform: scale(1.12);
-         text-shadow: 0 0 14px #fff, 0 0 32px rgba(255,255,255,.8); }
+         color: #ffe49a; text-shadow: 0 0 10px rgba(255,228,154,.8), 0 0 26px rgba(201,168,76,.6); }
   100% { transform: scale(1); }
 }
 /* 押した瞬間、行を光が左から右へ走り抜ける */
 .counter-item { position: relative; }
+/* 左から右へゴールドのゲージが溜まる演出 */
 .counter-item.hit::after {
   content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(90deg, transparent 0%, rgba(0,229,255,.22) 40%,
-              rgba(255,255,255,.34) 50%, rgba(0,229,255,.22) 60%, transparent 100%);
-  background-size: 220% 100%;
-  opacity: 0;                      /* 既定は透明。走っている間だけ見せる */
-  animation: cSweep .55s ease-out;
+  background: linear-gradient(90deg,
+              rgba(201,168,76,.26) 0%, rgba(201,168,76,.40) 55%, rgba(255,228,154,.55) 100%);
+  border-right: 1.5px solid #ffe49a;
+  box-shadow: 0 0 14px rgba(201,168,76,.55);
+  transform-origin: left center;
+  transform: scaleX(0);            /* 既定は幅0。溜まっている間だけ見せる */
+  opacity: 0;
+  animation: cFill .6s cubic-bezier(.25,.9,.3,1);
 }
-/* background-position の % は値が増えるほど見た目が左へ動くため、
-   左から右へ走らせるには 120% → -120% の向きにする */
-@keyframes cSweep {
-  0%   { background-position: 120% 0; opacity: 0; }
-  15%  { opacity: 1; }
-  85%  { opacity: 1; }
-  100% { background-position: -120% 0; opacity: 0; }
+@keyframes cFill {
+  0%   { transform: scaleX(0);   opacity: 1; }
+  65%  { transform: scaleX(1);   opacity: 1; }
+  100% { transform: scaleX(1);   opacity: 0; }
 }
 /* 押した位置から広がる波紋 */
 .counter-ring {
   position: fixed; z-index: 880; pointer-events: none;
   width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
-  border: 1px solid #00e5ff; box-shadow: 0 0 12px rgba(0,229,255,.7);
+  border: 1px solid #C9A84C; box-shadow: 0 0 14px rgba(201,168,76,.8);
   animation: cRing .6s cubic-bezier(.2,.8,.3,1) forwards;
 }
 @keyframes cRing {
@@ -615,8 +616,8 @@ body.theme-light .cday.today { box-shadow: var(--neon-box); }
 .counter-pop {
   position: fixed; pointer-events: none; z-index: 900;
   font-size: 17px; font-weight: 400; letter-spacing: 2px;
-  color: var(--white);
-  text-shadow: 0 0 10px rgba(0,229,255,.95), 0 0 26px rgba(255,255,255,.55);
+  color: #ffe49a;
+  text-shadow: 0 0 10px rgba(201,168,76,.95), 0 0 26px rgba(255,228,154,.6);
   animation: cpop .85s ease-out forwards;
 }
 @keyframes cpop {
@@ -3224,7 +3225,9 @@ function buildDailyView() {
       guideLabel: goal > 0 ? `目安 ${paceLabel(goal, last, a.unit)}` : ''
     };
   });
-  return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Daily`, buildNavHtml(`${gyr}年${gmo}月`), { zeroBase: true });
+  const _t = new Date();
+  const tIdx = (gyr === _t.getFullYear() && gmo === _t.getMonth() + 1) ? _t.getDate() - 1 : -1;
+  return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Daily`, buildNavHtml(`${gyr}年${gmo}月`), { zeroBase: true, todayIdx: tIdx });
 }
 
 /* ── Weekly：選択中の月を週別（暦週）で表示 ── */
@@ -3253,7 +3256,11 @@ function buildWeeklyView() {
       guideLabel: goal > 0 ? `目安 ${paceLabel(goal, numWeeks, a.unit, '週間')}` : ''
     };
   });
-  return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Weekly`, buildNavHtml(`${gyr}年${gmo}月`), { zeroBase: true, plainBars: true });
+  const _t = new Date();
+  // 今日が何週目にあたるか
+  const tIdx = (gyr === _t.getFullYear() && gmo === _t.getMonth() + 1)
+    ? Math.floor((_t.getDate() - 1 + day1js) / 7) : -1;
+  return buildItemCharts(items, labels, `${gyr}年${gmo}月 — Weekly`, buildNavHtml(`${gyr}年${gmo}月`), { zeroBase: true, plainBars: true, todayIdx: tIdx });
 }
 
 /* ── Monthly：選択中の年を月別に表示 ── */
@@ -3277,7 +3284,9 @@ function buildMonthlyView() {
       totalLabel: '年間実績'
     };
   });
-  return buildItemCharts(items, labels, `${gyr}年 — Monthly`, buildNavHtml(`${gyr}年`, 'year'), { zeroBase: true, hideGoal: true });
+  const _t = new Date();
+  const tIdx = gyr === _t.getFullYear() ? _t.getMonth() : -1;   // 今月
+  return buildItemCharts(items, labels, `${gyr}年 — Monthly`, buildNavHtml(`${gyr}年`, 'year'), { zeroBase: true, hideGoal: true, todayIdx: tIdx });
 }
 
 /* ── 項目ごとの棒グラフ（目標線つき）を縦に並べる ── */
@@ -3285,6 +3294,7 @@ function buildItemCharts(items, labels, subtitle, navHtml = '', opts = {}) {
   const zeroBase = !!opts.zeroBase;   // true なら 0（グラフ下端）を基準線にする
   const hideGoal = !!opts.hideGoal;   // true なら目標数値・進捗バーを表示しない
   const plainBars = hideGoal || !!opts.plainBars;   // true なら棒を一色で描く
+  const todayIdx = opts.todayIdx === undefined ? -1 : opts.todayIdx;   // 今日にあたる目盛りの位置
   const n = labels.length;
   const isLight = document.body.classList.contains('theme-light');
   const barC = isLight ? 'rgba(0,0,0,.72)'  : 'rgba(255,255,255,.72)';
@@ -3367,7 +3377,13 @@ function buildItemCharts(items, labels, subtitle, navHtml = '', opts = {}) {
     svg += `<line x1="${padL}" y1="${zeroY.toFixed(1)}" x2="${W}" y2="${zeroY.toFixed(1)}" stroke="${goalC}" stroke-width="1"/>`;
     // X軸ラベル（Dailyは全ての日付を表示）
     labels.forEach((lbl, i) => {
-      svg += `<text x="${xOf(i).toFixed(1)}" y="${H - 3}" text-anchor="middle" font-size="${dense ? 7 : (n > 16 ? 8 : 10)}" fill="${xc}" font-family="-apple-system,sans-serif">${lbl}</text>`;
+      const isToday = i === todayIdx;
+      const size = dense ? 7 : (n > 16 ? 8 : 10);
+      // 今日だけ明るい色＋発光にする（ライトテーマでは黒く光らせる）
+      const style = isToday
+        ? ` font-weight="600" style="filter:drop-shadow(0 0 3px ${isLight ? 'rgba(0,0,0,.55)' : 'rgba(255,255,255,.95)'}) drop-shadow(0 0 7px ${isLight ? 'rgba(0,0,0,.3)' : 'rgba(255,255,255,.6)'})"`
+        : '';
+      svg += `<text x="${xOf(i).toFixed(1)}" y="${H - 3}" text-anchor="middle" font-size="${isToday ? size + 1 : size}" fill="${isToday ? barD : xc}" font-family="-apple-system,sans-serif"${style}>${lbl}</text>`;
     });
     svg += `</svg>`;
 
