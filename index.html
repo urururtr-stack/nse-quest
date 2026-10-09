@@ -1982,9 +1982,9 @@ function updateLoginMeter() {
 /* 必要ペース。1日1件に満たない場合は「1件/3日」のように日数側で表す */
 function needPaceText(remain, days, unit) {
   if (remain <= 0 || days <= 0) return '';
-  return remain >= days
-    ? `${Math.ceil(remain / days)}${unit}/日`
-    : `1${unit}/${Math.round(days / remain)}日`;
+  if (remain >= days) return `${Math.ceil(remain / days)}${unit}/日`;
+  const every = Math.round(days / remain);           // 何日に1件のペースか
+  return every <= 1 ? `1${unit}/日` : `1${unit}/${every}日`;
 }
 
 /* 今日までに達しているべき件数（今月を表示しているときだけ意味を持つ） */
