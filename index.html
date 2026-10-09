@@ -1808,7 +1808,7 @@ function renderWeek(w) {
         const goal = getGoal(a.id);
         const total = getMonthTotal(a.id);
         const rate = goal > 0 ? Math.round(total / goal * 100) : 0;
-        const st = goalState(goal, rate);
+        const st = paceState(goal, total, rate);
         return `<div class="counter-item${st}" id="citem-${a.id}-${w}">
           <div class="counter-row">
             <div class="counter-name">${a.name}</div>
@@ -1979,25 +1979,41 @@ function updateLoginMeter() {
 
 /* カウンターの下に出す進捗の文言。
    表示中の月が今月のときだけ「今日時点の目安」と「今日からの必要ペース」を添える。 */
+/* 必要ペース。1日1件に満たない場合は「1件/3日」のように日数側で表す */
+function needPaceText(remain, days, unit) {
+  if (remain <= 0 || days <= 0) return '';
+  return remain >= days
+    ? `${Math.ceil(remain / days)}${unit}/日`
+    : `1${unit}/${Math.round(days / remain)}日`;
+}
+
+/* 今日までに達しているべき件数（今月を表示しているときだけ意味を持つ） */
+function todayTarget(goal) {
+  const t = new Date();
+  if (yr !== t.getFullYear() || mo !== t.getMonth() + 1) return null;
+  const { last } = monthInfo(yr, mo);
+  return { should: Math.round(goal * t.getDate() / last), daysLeft: last - t.getDate() + 1 };
+}
+
 function counterGoalText(a, goal, total, rate) {
   const v = Math.round(total * 10) / 10;
   if (!(goal > 0)) return `今月 ${v}${a.unit}`;
-  let txt = `今月 ${v}/${goal}${a.unit}・${rate}%`;
+  const txt = `今月 ${v}/${goal}${a.unit}・${rate}%`;
 
-  const t = new Date();
-  if (yr !== t.getFullYear() || mo !== t.getMonth() + 1) return txt;   // 今月以外は従来どおり
+  const tt = todayTarget(goal);
+  if (!tt || total >= tt.should) return txt;   // 今月以外、または目安を満たしていれば何も足さない
 
-  const { last } = monthInfo(yr, mo);
-  const today = t.getDate();
-  const should = Math.round(goal * today / last);          // 今日までに達しているべき件数
-  const behind = Math.max(0, should - total);
-  txt += `　今日の目安 ${should}${a.unit}`;
-  txt += behind > 0 ? `（${behind}${a.unit}不足）` : '（達成）';
+  const behind = tt.should - total;
+  const need = needPaceText(Math.max(0, goal - total), tt.daysLeft, a.unit);
+  return `${txt}　今日の目安 ${tt.should}${a.unit}（${behind}${a.unit}不足）` + (need ? `　必要 ${need}` : '');
+}
 
-  const remain = Math.max(0, goal - total);
-  const daysLeft = last - today + 1;                        // 今日を含む残り日数
-  txt += remain === 0 ? '　目標達成' : `　必要 ${Math.ceil(remain / daysLeft)}${a.unit}/日`;
-  return txt;
+/* カウンターの色は「今日の目安に追いついているか」で決める */
+function paceState(goal, total, rate) {
+  if (!(goal > 0)) return '';
+  const tt = todayTarget(goal);
+  if (!tt) return goalState(goal, rate);      // 今月以外は月間目標の達成で判定
+  return total >= tt.should ? ' done' : ' miss';
 }
 
 // 月間目標に対する状態（達成＝青 / 未達＝赤 / 目標未設定＝通常色）
@@ -2014,7 +2030,7 @@ function refreshGoalBars(w) {
     const goal = getGoal(a.id);
     const total = getMonthTotal(a.id);
     const rate = goal > 0 ? Math.round(total / goal * 100) : 0;
-    const st = goalState(goal, rate);
+    const st = paceState(goal, total, rate);
     const fill = el.querySelector('.goal-bar-fill');
     const txt  = el.querySelector('.counter-goal-txt');
     const item = document.getElementById(`citem-${a.id}-${w}`);
