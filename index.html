@@ -490,6 +490,7 @@ body.theme-light .cday.today { box-shadow: var(--neon-box); }
 .counter-goal { margin-top: 7px; }
 .counter-goal-txt {
   font-size: 9px; letter-spacing: 1px; color: var(--muted); margin-top: 4px;
+  line-height: 1.7;
 }
 
 /* ── 月間目標と進捗 ── */
@@ -1817,7 +1818,7 @@ function renderWeek(w) {
           </div>
           <div class="counter-goal" id="gbar-${a.id}-${w}">
             <div class="goal-bar"><div class="goal-bar-fill${st}" style="width:${Math.min(rate,100)}%"></div></div>
-            <div class="counter-goal-txt">${goal > 0 ? `今月 ${Math.round(total*10)/10}/${goal}${a.unit}・${rate}%` : `今月 ${Math.round(total*10)/10}${a.unit}`}</div>
+            <div class="counter-goal-txt">${counterGoalText(a, goal, total, rate)}</div>
           </div>
         </div>`;
       }).join('')}
@@ -1976,6 +1977,29 @@ function updateLoginMeter() {
   requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = `${pct}%`; }));
 }
 
+/* カウンターの下に出す進捗の文言。
+   表示中の月が今月のときだけ「今日時点の目安」と「今日からの必要ペース」を添える。 */
+function counterGoalText(a, goal, total, rate) {
+  const v = Math.round(total * 10) / 10;
+  if (!(goal > 0)) return `今月 ${v}${a.unit}`;
+  let txt = `今月 ${v}/${goal}${a.unit}・${rate}%`;
+
+  const t = new Date();
+  if (yr !== t.getFullYear() || mo !== t.getMonth() + 1) return txt;   // 今月以外は従来どおり
+
+  const { last } = monthInfo(yr, mo);
+  const today = t.getDate();
+  const should = Math.round(goal * today / last);          // 今日までに達しているべき件数
+  const behind = Math.max(0, should - total);
+  txt += `　今日の目安 ${should}${a.unit}`;
+  txt += behind > 0 ? `（${behind}${a.unit}不足）` : '（達成）';
+
+  const remain = Math.max(0, goal - total);
+  const daysLeft = last - today + 1;                        // 今日を含む残り日数
+  txt += remain === 0 ? '　目標達成' : `　必要 ${Math.ceil(remain / daysLeft)}${a.unit}/日`;
+  return txt;
+}
+
 // 月間目標に対する状態（達成＝青 / 未達＝赤 / 目標未設定＝通常色）
 function goalState(goal, rate) {
   if (!(goal > 0)) return '';
@@ -2000,7 +2024,7 @@ function refreshGoalBars(w) {
       fill.classList.toggle('done', st === ' done');
       fill.classList.toggle('miss', st === ' miss');
     }
-    if (txt) txt.textContent = goal > 0 ? `今月 ${Math.round(total*10)/10}/${goal}${a.unit}・${rate}%` : `今月 ${Math.round(total*10)/10}${a.unit}`;
+    if (txt) txt.textContent = counterGoalText(a, goal, total, rate);
   });
 }
 
